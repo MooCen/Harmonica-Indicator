@@ -1,0 +1,735 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/advanced_settings_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/advanced_settings_Toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="32dp">
+            <!--<TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginBottom="12dp"
+                android:text="更多设置"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                />-->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_weight="1"
+                    android:text="更多设置"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/advanced_setting_moreSetting_codeBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="24dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="8dp"
+                    android:text="⇄"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <CheckBox
+                android:id="@+id/advanced_setting_hideBasicSetting_checkbox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="24dp"
+                android:layoutDirection="rtl"
+                android:checked="false"
+                android:text="· 折叠“基础设置”  "
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="17sp"/>
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_circleAlphaMin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:id="@+id/advanced_setting_circleAlphaMin_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="24dp"
+                        android:text="· 提示圈最低不透明度 "
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/advanced_setting_circleAlphaMin_rate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="40 / 255"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="   — 出现时Alpha  "
+                        android:textColor="?android:attr/textColorHint"
+                        android:textSize="11sp" />
+
+                </LinearLayout>
+                <SeekBar
+                    android:id="@+id/advanced_setting_circleAlphaMin_seekbar"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:progress="8"
+                    android:min="0"
+                    android:max="51"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_circleAlphaMax"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:id="@+id/advanced_setting_circleAlphaMax_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="24dp"
+                        android:text="· 提示圈最高不透明度 "
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/advanced_setting_circleAlphaMax_rate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="255 / 255"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="   — 消失时Alpha  "
+                        android:textColor="?android:attr/textColorHint"
+                        android:textSize="11sp" />
+
+                </LinearLayout>
+                <SeekBar
+                    android:id="@+id/advanced_setting_circleAlphaMax_seekbar"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:progress="51"
+                    android:min="0"
+                    android:max="51"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_funcLineSpeed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:id="@+id/advanced_setting_funcLineSpeed_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="24dp"
+                        android:text="· &quot;音高移位&quot;区速度 "
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/advanced_setting_funcLineSpeed_rate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="x1.00"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="   — 半升降四键区变化速度  "
+                        android:textColor="?android:attr/textColorHint"
+                        android:textSize="11sp" />
+                </LinearLayout>
+                <SeekBar
+                    android:id="@+id/advanced_setting_funcLineSpeed_seekbar"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:progress="20"
+                    android:min="10"
+                    android:max="40"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_noteLineSpeed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:id="@+id/advanced_setting_noteLineSpeed_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="24dp"
+                        android:text="· &quot;唱名&quot;区速度 "
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="17sp" />
+                    <TextView
+                        android:id="@+id/advanced_setting_noteLineSpeed_rate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="x1.00"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="17sp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="   — 1-1' 八键区变化速度  "
+                        android:textColor="?android:attr/textColorHint"
+                        android:textSize="11sp" />
+                </LinearLayout>
+                <SeekBar
+                    android:id="@+id/advanced_setting_noteLineSpeed_seekbar"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:progress="20"
+                    android:min="10"
+                    android:max="40"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                >
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_gravity="center"
+                    android:text="· &quot;音高移位&quot;区指示类型："
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="18sp" />
+                <Spinner
+                    android:id="@+id/advanced_setting_funcLineType_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:minWidth="60dp"
+                    android:minHeight="36dp"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="3dp"
+                >
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_gravity="center"
+                    android:text="· &quot;唱名&quot;区指示类型："
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="18sp" />
+                <Spinner
+                    android:id="@+id/advanced_setting_noteLineType_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:minWidth="60dp"
+                    android:minHeight="36dp"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_funcLineNoteType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                >
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_gravity="center"
+                    android:text="· &quot;音高移位&quot;区音符样式："
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="18sp" />
+                <Spinner
+                    android:id="@+id/advanced_setting_funcLineNoteType_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:minWidth="60dp"
+                    android:minHeight="36dp"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_funcLineReverse"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="-3dp"
+                >
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/advanced_setting_funcLineReverse_switchcompat"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_gravity="center"
+                    android:text="· 反转 &quot;音高移位&quot; 区："
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="18sp"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_noteLineNoteType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                >
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_gravity="center"
+                    android:text="· &quot;唱名&quot;区音符样式："
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="18sp" />
+                <Spinner
+                    android:id="@+id/advanced_setting_noteLineNoteType_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:minWidth="60dp"
+                    android:minHeight="36dp"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_noteLineReverse"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="-3dp"
+                >
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/advanced_setting_noteLineReverse_switchcompat"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_gravity="center"
+                    android:text="· 反转 &quot;唱名&quot; 区："
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="18sp"
+                    />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/advanced_setting_warnHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:text="可能的提示"
+                android:textSize="16dp"
+                android:textColor="#FFC66D"
+                android:visibility="gone"/>
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_basic_setting_collection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!--<TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="30dp"
+                    android:layout_marginStart="24dp"
+                    android:layout_marginBottom="12dp"
+                    android:text="基础设置"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    />-->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="30dp"
+                    android:layout_marginBottom="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="24dp"
+                        android:layout_weight="1"
+                        android:text="基础设置"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/advanced_setting_basicSetting_codeBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="24dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:padding="8dp"
+                        android:text="⇄"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/advanced_setting_fallVelo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+                    <LinearLayout
+                        android:id="@+id/advanced_setting_fallVelo_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="24dp"
+                            android:text="· 音符下落速度 "
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="16sp" />
+                        <TextView
+                            android:id="@+id/advanced_setting_fallVelo_rate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="900px/s"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="16sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="   — 音符将以此速度下落  "
+                            android:textColor="?android:attr/textColorHint"
+                            android:textSize="11sp" />
+                        <!--<Button
+                            android:id="@+id/advanced_setting_playSpeed_RESET"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:text="重置"/>-->
+
+                    </LinearLayout>
+                    <SeekBar
+                        android:id="@+id/advanced_setting_fallVelo_seekbar"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:progress="36"
+                        android:min="16"
+                        android:max="80"
+                        />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/advanced_setting_noteSizeBonus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:orientation="vertical">
+                    <LinearLayout
+                        android:id="@+id/advanced_setting_noteSizeBonus_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="24dp"
+                            android:text="· 音符大小缩放 "
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="18sp" />
+                        <TextView
+                            android:id="@+id/advanced_setting_noteSizeBonus_rate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="x1.00"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="18sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="   — 音符的大小  "
+                            android:textColor="?android:attr/textColorHint"
+                            android:textSize="12sp" />
+                        <!--<Button
+                            android:id="@+id/advanced_setting_playSpeed_RESET"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:text="重置"/>-->
+
+                    </LinearLayout>
+                    <SeekBar
+                        android:id="@+id/advanced_setting_noteSizeBonus_seekbar"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:progress="20"
+                        android:min="10"
+                        android:max="40"
+                        />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/advanced_setting_circleShrinkRate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+                    <LinearLayout
+                        android:id="@+id/advanced_setting_circleShrinkRate_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="24dp"
+                            android:text="· 提示圈缩小速度 "
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="16sp" />
+                        <TextView
+                            android:id="@+id/advanced_setting_circleShrinkRate_rate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="400px/s"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="16sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="   — 提示圈将以此速度缩小  "
+                            android:textColor="?android:attr/textColorHint"
+                            android:textSize="11sp" />
+                        <!--<Button
+                            android:id="@+id/advanced_setting_playSpeed_RESET"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:text="重置"/>-->
+
+                    </LinearLayout>
+                    <SeekBar
+                        android:id="@+id/advanced_setting_circleShrinkRate_seekbar"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:progress="16"
+                        android:min="4"
+                        android:max="40"
+                        />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/advanced_setting_circleLeadTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+                    <LinearLayout
+                        android:id="@+id/advanced_setting_circleLeadTime_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="24dp"
+                            android:text="· 提示圈显示时间 "
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="16sp" />
+                        <TextView
+                            android:id="@+id/advanced_setting_circleLeadTime_rate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0.75s"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="16sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="   — 提示圈将提前多久显示  "
+                            android:textColor="?android:attr/textColorHint"
+                            android:textSize="11sp" />
+                        <!--<Button
+                            android:id="@+id/advanced_setting_playSpeed_RESET"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:text="重置"/>-->
+
+                    </LinearLayout>
+                    <SeekBar
+                        android:id="@+id/advanced_setting_circleLeadTime_seekbar"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:progress="15"
+                        android:min="0"
+                        android:max="50"
+                        />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/advanced_setting_effectSizeBonus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:orientation="vertical">
+                    <LinearLayout
+                        android:id="@+id/advanced_setting_effectSizeBonus_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="24dp"
+                            android:text="· 特效大小缩放 "
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="18sp" />
+                        <TextView
+                            android:id="@+id/advanced_setting_effectSizeBonus_rate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="x1.00"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="18sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="   — 击打特效的大小  "
+                            android:textColor="?android:attr/textColorHint"
+                            android:textSize="12sp" />
+                        <!--<Button
+                            android:id="@+id/advanced_setting_playSpeed_RESET"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:text="重置"/>-->
+
+                    </LinearLayout>
+                    <SeekBar
+                        android:id="@+id/advanced_setting_effectSizeBonus_seekbar"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:progress="20"
+                        android:min="10"
+                        android:max="40"
+                        />
+
+                    <Button
+                        android:id="@+id/advanced_setting_resetAllBasic_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:layout_gravity="center"
+                        android:text="重置所有基础设置"
+                        />
+                </LinearLayout>
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/advanced_setting_resetAllAdvanced_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:layout_gravity="center"
+                android:text="重置所有高级设置"
+                />
+
+        </LinearLayout>
+    </ScrollView>
+
+
+
+
+</LinearLayout>

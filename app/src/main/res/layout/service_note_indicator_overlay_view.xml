@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_overlay_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="#9D000000"
+    >
+
+
+    <com.moocengg.harmonica_indicator.NoteIndicatorView
+        android:id="@+id/noteTrack"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        />
+
+    <View
+        android:id="@+id/viewBackground"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="#70000000"
+        android:visibility="gone"
+        />
+
+    <TextView
+        android:id="@+id/textHint"
+        android:layout_width="325dp"
+        android:layout_height="100dp"
+        android:layout_gravity="top|center"
+        android:layout_marginTop="0dp"
+        android:gravity="center"
+        android:textSize="24sp"
+        android:text="准备开始" />
+
+
+    <!-- 新增的父容器，本身不做缩放，只负责监听触摸事件 -->
+    <FrameLayout
+        android:id="@+id/touchInterceptorView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        >
+
+        <FrameLayout
+            android:id="@+id/layoutPauseRaycast"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end">
+
+            <Button
+                android:id="@+id/btnPauseRaycast"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="24dp"
+                android:layout_marginBottom="24dp"
+                android:alpha="1"
+                android:text="单击暂停触控遮挡6s" />
+
+            <ProgressBar
+                android:id="@+id/pgbPauseRaycast"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="190dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="12dp"
+                android:layout_marginBottom="12dp"
+                android:max="100"
+                android:progress="60" />
+        </FrameLayout>
+
+        <!-- 你原来的 calibrationContainer 作为子 View -->
+
+        <FrameLayout
+            android:id="@+id/calibrationContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center">
+
+
+
+
+            <!-- 背景图，作为尺寸基准 -->
+            <ImageView
+                android:id="@+id/ivCalibration"
+                android:layout_width="600dp"
+                android:layout_height="200dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/example"
+                android:contentDescription="校准界面"/>
+
+            <!-- 校准点：给每个点一个 View，自己设成一个小圆点 -->
+
+            <View
+                android:id="@+id/calibPoint1"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="42dp"
+                android:layout_marginTop="109dp" />
+
+            <View
+                android:id="@+id/calibPoint2"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="109dp"
+                android:layout_marginTop="109dp" />
+
+            <View
+                android:id="@+id/calibPoint3"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="175dp"
+                android:layout_marginTop="109dp" />
+
+            <View
+                android:id="@+id/calibPoint4"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="241dp"
+                android:layout_marginTop="109dp" />
+
+            <View
+                android:id="@+id/calibPoint5"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="308dp"
+                android:layout_marginTop="109dp" />
+
+            <View
+                android:id="@+id/calibPoint6"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="375dp"
+                android:layout_marginTop="109dp" />
+
+            <View
+                android:id="@+id/calibPoint7"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="442dp"
+                android:layout_marginTop="109dp" />
+
+            <View
+                android:id="@+id/calibPoint8"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="508dp"
+                android:layout_marginTop="109dp" />
+
+            <View
+                android:id="@+id/calibPointSemitone"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="177dp"
+                android:layout_marginTop="52dp" />
+
+            <View
+                android:id="@+id/calibPointUpTone"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="256dp"
+                android:layout_marginTop="52dp" />
+
+            <View
+                android:id="@+id/calibPointNaturalTone"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="320dp"
+                android:layout_marginTop="52dp" />
+
+            <View
+                android:id="@+id/calibPointDownTone"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="383dp"
+                android:layout_marginTop="52dp" />
+            <!-- 想加几个加几个 -->
+        </FrameLayout>
+    </FrameLayout>
+
+
+
+
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+
+        <LinearLayout
+            android:id="@+id/overlayControlPad"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:orientation="vertical"
+            >
+            <Button
+                android:id="@+id/btnPlay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="18dp"
+                android:layout_marginTop="24dp"
+                android:textSize="10sp"
+                android:alpha="0.9"
+                android:text="就绪时，点击此处开始\n界面将不再遮挡触控" />
+            <Button
+                android:id="@+id/btnEditMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:textSize="12sp"
+                android:alpha="0.9"
+                android:text="模式：编辑" />
+            <Button
+                android:id="@+id/btnStartCalibration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:textSize="12sp"
+                android:alpha="0.9"
+                android:text="隐藏校准界面" />
+            <Button
+                android:id="@+id/btnResetCalibration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:textSize="12sp"
+                android:alpha="0.9"
+                android:text="重置校准界面位置" />
+
+        </LinearLayout>
+
+
+    </FrameLayout>
+
+
+</FrameLayout>

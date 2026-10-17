@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="main_navigation_view">
+    <group android:checkableBehavior="none">
+        <item android:id="@+id/nav_setting"
+            android:icon="@drawable/baseline_settings_24"
+            android:title="设置"
+            />
+        <item android:id="@+id/nav_about"
+            android:icon="@drawable/baseline_info_24"
+            android:title="关于"
+            />
+    </group>
+    <item android:title="更多选项"
+        android:icon="@drawable/baseline_data_object_24">
+        <menu>
+            <item android:id="@+id/nav_indicator_advanced_setting"
+                android:icon="@drawable/baseline_code_24"
+                android:title="指示器高级设置"
+                />
+            <item android:id="@+id/nav_software_authority_setting"
+                android:icon="@drawable/baseline_data_object_24"
+                android:title="软件权限设置"
+                />
+            <item android:id="@+id/nav_todays_character"
+                android:icon="@drawable/baseline_free_breakfast_24"
+                android:title="今日人品"
+                />
+        </menu>
+    </item>
+</menu>

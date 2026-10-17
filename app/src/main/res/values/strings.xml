@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">HarmonicaIndicator</string>
+    <string name="developer">MooCen</string>
+    <string name="special_thanks">uu</string>
+    <string name="buildin_resource">苏八拉稀@Bilibili</string>
+    <string name="app_version">ERROR_APP_VERSION</string>
+    <string name="open">打开</string>
+    <string name="close">关闭</string>
+
+</resources>

@@ -1,0 +1,6 @@
+name: "高仿官皮新版"
+author: fkh(B站苏八拉稀)
+hitFx: [7, 6]
+holdAtlas: [50, 53]
+holdAtlasMH: [50, 153]
+hitFxScale: 0.95
