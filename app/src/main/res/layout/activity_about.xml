@@ -163,7 +163,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginTop="72dp"
+                android:layout_marginTop="60dp"
                 >
                 <TextView
                     android:layout_width="wrap_content"
@@ -211,8 +211,39 @@
                     android:textColor="?android:attr/textColorHint"
                     android:textSize="13sp"/>
             </LinearLayout>
-        </LinearLayout>
+            <LinearLayout
+                android:id="@+id/about_get_App"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp"
+                >
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="获取软件"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:textSize="16sp"
+                    />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="@string/App_link"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="14sp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_gravity="center"
+                    android:text="长按复制~"
+                    android:textColor="?android:attr/textColorHint"
+                    android:textSize="13sp"/>
+            </LinearLayout>
 
+        </LinearLayout>
 
     </ScrollView>
 

@@ -14,12 +14,14 @@ import androidx.core.view.WindowInsetsCompat
 
 class AboutActivity : AppCompatActivity() {
     private lateinit var contactAuthor: LinearLayout
+    private lateinit var getApp: LinearLayout
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_about)
 
         contactAuthor = findViewById(R.id.about_contact_author)
+        getApp = findViewById(R.id.about_get_App)
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.about_root)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -36,6 +38,12 @@ class AboutActivity : AppCompatActivity() {
         contactAuthor.setOnLongClickListener { v ->
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             cm.setPrimaryClip(ClipData.newPlainText("作者联系方式", "Bilibili：中二病晚期的漠笙\nQQ：848566295\n邮箱：MooCenGG@163.com"))
+            Toast.makeText(applicationContext, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+            true
+        }
+        getApp.setOnLongClickListener { v ->
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newPlainText("获取软件", "github.com/MooCen/Harmonica-Indicator"))
             Toast.makeText(applicationContext, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
             true
         }

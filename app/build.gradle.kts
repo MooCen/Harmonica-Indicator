@@ -16,7 +16,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "0.19.4"
+        versionName = "0.19.5"
         //将版本号同步至strings.xml
         resValue("string", "app_version", versionName!!)
 

@@ -477,6 +477,11 @@ class OverlayService : Service() {
         calibrationView.translationY = initialTransY
         calibrationView.scaleX = initialScale
         calibrationView.scaleY = initialScale
+
+        SettingsManager.lastCalibrationPosX = calibrationView.translationX
+        SettingsManager.lastCalibrationPosY = calibrationView.translationY
+        SettingsManager.lastCalibrationScaleX = calibrationView.scaleX
+        SettingsManager.lastCalibrationScaleY = calibrationView.scaleY
     }
 
     private var cooldownAnimator: ValueAnimator? = null
