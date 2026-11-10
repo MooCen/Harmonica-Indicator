@@ -1,0 +1,32 @@
+素材版权声明 / Asset Notice
+================================================================
+
+本资源包：resource_phigros_replicate（显示名「高仿官皮新版」）
+制作者：fkh（B 站：苏八拉稀）
+
+其中包含的美术与音频素材，版权归原作者或相关权利人所有。
+
+本仓库内置该资源包，仅用于演示"资源包"这一功能的实现效果，
+不属于代码的 MIT 授权范围（代码许可见仓库根目录的 LICENSE）。
+如权利人认为本仓库或安装包中的素材侵犯了其权益，请联系作者，
+我们会立即移除相关内容，不需要任何理由说明。
+
+----------------------------------------------------------------
+
+The artwork and audio assets bundled in this resource pack belong to
+their respective copyright holders.
+
+They are included in this repository solely as a demo of the resource
+pack feature and are NOT covered by the MIT license that applies to the
+source code (see LICENSE in the repository root).
+
+If you are a rights holder and believe your assets should not be
+distributed here, please contact the author and the content will be
+removed promptly.
+
+----------------------------------------------------------------
+
+Contact / 联系方式
+    Email : MooCenGG@163.com
+    QQ    : 848566295
+    GitHub: github.com/MooCen/Harmonica-Indicator

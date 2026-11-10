@@ -76,6 +76,8 @@
 
 内置皮肤：**高仿官皮新版** — 作者 `fkh（B站 苏八拉稀）`。
 
+> **素材版权归原作者 / 权利人所有，随仓库内置仅作功能演示，不在代码的 MIT 授权范围内；如权利人提出要求会立即移除。** 详细声明见 [NOTICE.txt](app/src/main/assets/resource_packs_phigros_theme/resource_phigros_replicate/NOTICE.txt)。
+
 想自己做一个：
 
 ```
