@@ -156,7 +156,7 @@ my_pack.zip
 
 ## 联系作者
 
-- B 站：[中二病晚期的漠笙](https://space.bilibili.com/)（站内搜索即可）
+- B 站：中二病晚期的漠笙（站内搜索即可）
 - QQ：848566295
 - 邮箱：MooCenGG@163.com
 
