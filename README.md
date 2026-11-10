@@ -13,6 +13,7 @@
   <img alt="version" src="https://img.shields.io/badge/version-0.20.0-blue">
   <img alt="minSdk" src="https://img.shields.io/badge/minSdk-26%20(Android%208.0)-green">
   <img alt="platform" src="https://img.shields.io/badge/platform-Android-3DDC84">
+  <img alt="license" src="https://img.shields.io/badge/license-MIT-brightgreen">
 </p>
 
 ---
@@ -156,12 +157,17 @@ my_pack.zip
 
 ## 联系作者
 
+- GitHub：[MooCen/Harmonica-Indicator](https://github.com/MooCen/Harmonica-Indicator)
 - B 站：中二病晚期的漠笙（站内搜索即可）
 - QQ：848566295
 - 邮箱：MooCenGG@163.com
 
+## 许可证
+
+代码采用 [MIT License](LICENSE)：你可以自由使用、修改、二次分发甚至商用，只需要保留版权声明与许可证原文；软件按"现状"提供，作者不承担任何责任。
+
+**内置资源包不在 MIT 授权范围内。** `resource_phigros_replicate`（作者 fkh / B 站 苏八拉稀）里的美术与音频素材，版权归原作者或相关权利人所有，随仓库内置仅作功能演示；如权利人提出要求，会及时移除相关内容。你自己导入的资源包同理，由你自行保证素材来源合法。
+
 ## 声明
 
-本项目仅供个人学习与练习使用，与任何游戏官方无关。请遵守游戏的服务条款；因使用本工具产生的一切后果由使用者自行承担。
-
-仓库目前**未声明开源许可证**——如果你要转载、修改或二次分发，请先联系作者。
+本项目仅供个人学习与练习使用，与任何游戏官方无关，也不代表任何游戏厂商的立场。请遵守游戏的服务条款；因使用本工具产生的一切后果由使用者自行承担。
