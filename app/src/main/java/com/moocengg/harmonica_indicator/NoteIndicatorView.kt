@@ -12,6 +12,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -381,6 +382,43 @@ class NoteIndicatorView @JvmOverloads constructor(
         Log.i("NoteIndicatorView", "第一判定点大小：${pointDict[1 to 1]?.scaleX},${pointDict[1 to 1]?.scaleY}")
     }
 
+    /**
+     * 把 SettingsManager 里的所有视觉参数灌进本 View。
+     * 悬浮窗和设置页预览共用这一处，免得两边各写一份、改了一边忘了另一边。
+     * 注意：这里**不碰资源包**，资源包由 loadResourcePack / ensureResourcePack 管。
+     */
+    fun syncVisualSettings() {
+        playSpeed = SettingsManager.playSpeed
+        fallVelo = SettingsManager.fallVelo
+        noteSizeBonus = SettingsManager.noteSizeBonus
+        circleShrinkRate = SettingsManager.circleShrinkRate.toFloat()
+        circleLeadTime = SettingsManager.circleLeadTime
+        effectSizeBonus = SettingsManager.effectSizeBonus
+        circleAlphaMin = SettingsManager.circleAlphaMin
+        circleAlphaMax = SettingsManager.circleAlphaMax
+        noteLineSpeed = SettingsManager.noteLineSpeed
+        funcLineSpeed = SettingsManager.funcLineSpeed
+        noteLineType = SettingsManager.noteLineType
+        funcLineType = SettingsManager.funcLineType
+        noteLineNoteType = SettingsManager.noteLineNoteType
+        noteLineReverse = SettingsManager.noteLineReverse
+        funcLineNoteType = SettingsManager.funcLineNoteType
+        funcLineReverse = SettingsManager.funcLineReverse
+    }
+
+    /** 悬浮窗用：强制重新确认资源包 + 灌参数（保留"每次开播都重试加载"的老行为）。 */
+    fun syncFromSettings() {
+        loadResourcePack(SettingsManager.resourcePack)
+        syncVisualSettings()
+    }
+
+    /** 预览用：包名变了才重读磁盘，10Hz 调也不会反复解码图片。 */
+    fun ensureResourcePack() {
+        if (resourcePackName != SettingsManager.resourcePack) {
+            loadResourcePack(SettingsManager.resourcePack)
+        }
+    }
+
     // 音符图片渲染大小（像素）
     // private var noteSizeX: Int = (noteDrawable?.getIntrinsicWidth() ?: 0) / 10
     // private var noteSizeY: Int = (noteDrawable?.getIntrinsicHeight() ?: 0) / 10
@@ -389,6 +427,11 @@ class NoteIndicatorView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        // 设置页里的"样式预览"走独立分支：不碰校准点、不碰 OverlayState
+        if (previewMode) {
+            drawPreview(canvas)
+            return
+        }
         // 判定线
         // 实心主线
         if(noteLineType == 1) canvas.drawLine(noteLineX - lineHalfLength, noteLineY, noteLineX + lineHalfLength, noteLineY, lineCorePaint)
@@ -466,8 +509,9 @@ class NoteIndicatorView @JvmOverloads constructor(
                 val alpha = (circleAlphaMin + (circleAlphaMax - circleAlphaMin) * progress)
                     .toInt().coerceIn(0, 255)
 
-                // ⑤ 应用 alpha 并绘制
+                // ⑤ 应用 alpha 并绘制（两支画笔都要设，否则双押圈不会跟着渐变）
                 circlePaint.alpha = alpha
+                circlePaintDoubleRhyme.alpha = alpha
 
 
 
@@ -647,8 +691,191 @@ class NoteIndicatorView @JvmOverloads constructor(
         effectRegionDecoder?.recycle()
         try { effectInputStream?.close() } catch (_: Exception) {}
     }*/
+    // ==================== 设置页的"样式预览" ====================
+    // 复用同一个 View 而不是另写渲染器：画笔、贴图、公式全在手上，改一处两边都生效。
+    // 不读 OverlayState、不碰 pointDict，自己造三拍循环的假音符。
+    var previewMode: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            if (value) {
+                previewStartMs = SystemClock.elapsedRealtime()
+                // 还没附着就先不启动：视图 attach 前 post 会进 run-queue，
+                // 再叠上 onAttachedToWindow 里的启动就变成两条循环了。
+                if (isAttachedToWindow) startPreviewTicker()
+            } else {
+                stopPreviewTicker()
+            }
+            invalidate()
+        }
+
+    private var previewStartMs = 0L
+    private var previewLastSyncMs = 0L
+    private var previewTicking = false
+    private val previewDstRect = RectF(0f, 0f, 0f, 0f)
+
+    // 预览用的三个缩放系数，每次 drawPreview 重算
+    private var previewScale = 1f        // 预览宽 / 横屏屏宽
+    private var previewPointScale = 1f   // 校准缩放（真实绘制里音符大小和它平方相关）
+    private var previewPointW = 1f       // 判定点宽度（50dp 的小 View）
+
+    private val previewTicker = object : Runnable {
+        override fun run() {
+            if (!previewMode) {
+                previewTicking = false
+                return
+            }
+            // 10Hz 灌一次设置就足够跟手，比每帧读 SharedPreferences 便宜
+            val now = SystemClock.elapsedRealtime()
+            if (now - previewLastSyncMs >= 100L) {
+                previewLastSyncMs = now
+                ensureResourcePack()
+                syncVisualSettings()
+            }
+            invalidate()
+            postOnAnimation(this)
+        }
+    }
+
+    private fun startPreviewTicker() {
+        if (previewTicking) return   // onAttached 和 onWindowVisibility 都会来，去重
+        previewTicking = true
+        previewLastSyncMs = 0L
+        removeCallbacks(previewTicker)
+        postOnAnimation(previewTicker)
+    }
+
+    private fun stopPreviewTicker() {
+        previewTicking = false
+        removeCallbacks(previewTicker)
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (previewMode) startPreviewTicker()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (!previewMode) return
+        // 页面不可见就停，别在后台空转烧电
+        if (visibility == View.VISIBLE) startPreviewTicker() else stopPreviewTicker()
+    }
+
+    /**
+     * 三拍一循环：
+     *   第 0 拍  只有 noteLine 单押音符
+     *   第 1 拍  funcLine 单押 + noteLine 双押
+     *   第 2 拍  funcLine 双押 + noteLine 双押
+     * 两条线各按自己的 lineType 画：1 = 判定线 + 下落音符，2 = 收缩指示圈。
+     */
+    private fun drawPreview(canvas: Canvas) {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        if (w <= 1f || h <= 1f) return
+
+        val cx = w / 2f
+        val funcLineYPreview = h * 0.28f
+        val noteLineYPreview = h * 0.72f
+        val density = resources.displayMetrics.density
+
+        // 预览是"缩小版的真实悬浮窗"：按 预览宽度 / 横屏屏宽 等比缩放。
+        // 不这么做的话，1000px 宽的 click.png 在 200dp 高的条里会变成一根糊满屏的大棍子。
+        val screenW = maxOf(
+            resources.displayMetrics.widthPixels,
+            resources.displayMetrics.heightPixels
+        ).toFloat()
+        previewScale = (w / screenW).coerceIn(0.05f, 1f) * PREVIEW_ZOOM
+
+        // 校准缩放（没校准过时按 1），真实绘制里音符尺寸和它是平方关系
+        previewPointScale = SettingsManager.lastCalibrationScaleX.let { if (it > 0f) it else 1f }
+        // 判定点宽度 = 校准图里那两个 50dp 的小 View
+        previewPointW = 50f * density * previewPointScale
+
+        // 判定线：只有线型那一组才画线（线宽也按真实公式缩放）
+        lineCorePaint.strokeWidth = 16f * previewPointScale * previewScale
+        if (funcLineType == 1) canvas.drawLine(0f, funcLineYPreview, w, funcLineYPreview, lineCorePaint)
+        if (noteLineType == 1) canvas.drawLine(0f, noteLineYPreview, w, noteLineYPreview, lineCorePaint)
+
+        // 圈型描边：真实是 12px
+        circlePaint.strokeWidth = 12f * previewScale
+        circlePaintDoubleRhyme.strokeWidth = 12f * previewScale
+
+        val beatDur = (circleLeadTime + 0.35f).coerceIn(0.9f, 2.5f)
+        val elapsed = (SystemClock.elapsedRealtime() - previewStartMs) / 1000f
+        val beat = ((elapsed / beatDur).toInt()) % 3
+        val timeToHit = beatDur - (elapsed % beatDur)
+
+        drawPreviewBeat(
+            canvas, cx, noteLineYPreview, timeToHit, noteLineType,
+            noteLineSpeed, noteLineReverse, noteLineNoteType, beat >= 1, isFunc = false, viewH = h
+        )
+        if (beat >= 1) {
+            drawPreviewBeat(
+                canvas, cx, funcLineYPreview, timeToHit, funcLineType,
+                funcLineSpeed, funcLineReverse, funcLineNoteType, beat == 2, isFunc = true, viewH = h
+            )
+        }
+    }
+
+    /** 画"一条线"这一拍该有的东西；lineType 决定是下落音符还是指示圈。 */
+    private fun drawPreviewBeat(
+        canvas: Canvas, x: Float, targetY: Float, timeToHit: Float,
+        lineType: Int, speedMul: Float, reverse: Boolean, noteType: Int,
+        doubleRhyme: Boolean, isFunc: Boolean, viewH: Float
+    ) {
+        // —— 指示圈：和真实绘制同一套公式（半径 = 目标半径 + 剩余时间 × 收缩速度）——
+        if (lineType == 2) {
+            if (circleLeadTime <= 0f || timeToHit > circleLeadTime) return
+            val targetR = previewPointW / 2.2f
+            val radius = (targetR + timeToHit * circleShrinkRate) * previewScale
+            val progress = 1f - (timeToHit / circleLeadTime).coerceIn(0f, 1f)
+            val alpha = (circleAlphaMin + (circleAlphaMax - circleAlphaMin) * progress)
+                .toInt().coerceIn(0, 255)
+            val paint = if (doubleRhyme) circlePaintDoubleRhyme else circlePaint
+            paint.alpha = alpha
+            canvas.drawCircle(x, targetY, radius, paint)
+            return
+        }
+
+        // —— 下落音符：从视图顶端（反转时是底端）落到判定线 ——
+        // 速度同样按预览比例缩小，这样"从边缘落到线"所需的秒数和真机一致
+        val speed = (fallVelo * speedMul).coerceAtLeast(60f) * previewScale
+        // 行程 = 判定线到"进场边"的距离，这样音符每次都从上/下边缘整段落进来
+        val travel = (if (reverse) viewH - targetY else targetY).coerceAtLeast(1f)
+        if (timeToHit > travel / speed) return
+
+        // 功能线在真实绘制里固定用 *_mh 图，音符线才看 doubleRhyme
+        val bmp = noteBitmapCache[noteType to if (isFunc) true else doubleRhyme] ?: return
+
+        // 照抄真实绘制的尺寸公式：图片尺寸 × 校准缩放² × 大小倍率 ÷ 7，再按预览比例缩小。
+        // （真实代码里 pointScaleX 被乘了两次，这里保持一致，否则预览会比真机小一圈。）
+        val sizeScale = previewPointScale * previewPointScale * noteSizeBonus / 7f * previewScale
+        val sizeW = bmp.width * sizeScale
+        val sizeH = bmp.height * sizeScale
+        val y = targetY + (if (reverse) 1f else -1f) * timeToHit * speed
+        previewDstRect.set(x - sizeW / 2f, y - sizeH / 2f, x + sizeW / 2f, y + sizeH / 2f)
+        if (reverse) {
+            canvas.save()
+            canvas.scale(1f, -1f, x, y)
+            canvas.drawBitmap(bmp, null, previewDstRect, null)
+            canvas.restore()
+        } else {
+            canvas.drawBitmap(bmp, null, previewDstRect, null)
+        }
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        stopPreviewTicker()
         releaseEffectResources()
+    }
+
+    companion object {
+        /**
+         * 预览整体缩放系数。1f = 与真机上的占屏比例一致；
+         * 如果觉得预览里的音符太小看不清，把这个调大（比如 1.4f）就行，其它不用动。
+         */
+        private const val PREVIEW_ZOOM = 1f
     }
 }

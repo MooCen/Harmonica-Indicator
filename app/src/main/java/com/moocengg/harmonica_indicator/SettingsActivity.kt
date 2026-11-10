@@ -65,6 +65,8 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 进程被回收后可能直接从本页恢复，不能指望 MainActivity 已经初始化过
+        SettingsManager.init(this)
         enableEdgeToEdge()
         setContentView(R.layout.activity_settings)
         // 萌新开发者脚注：一定要先构筑整个场景后再调用其中的元素，否则就是java.NullPointerException咯

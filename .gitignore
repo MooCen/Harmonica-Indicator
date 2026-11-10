@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# 源码备份（由开发者/助手生成，不进仓库）
+/backups/

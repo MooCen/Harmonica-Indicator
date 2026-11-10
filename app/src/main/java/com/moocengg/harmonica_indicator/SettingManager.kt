@@ -31,6 +31,7 @@ object SettingsManager {
     private const val KEY_EFFECT_SIZE_BONUS = "effect_size_bonus"
     private const val KEY_ALPHA_RANGE = "circle_alpha_range"
     private const val KEY_HIDE_BASIC_SETTING = "hide_basic_setting"
+    private const val KEY_PREVIEW_ENABLED = "preview_enabled"
     private const val KEY_FUNC_LINE_SPEED = "func_line_speed"
     private const val KEY_NOTE_LINE_SPEED = "note_line_speed"
     private const val KEY_FUNC_LINE_TYPE = "func_line_type"
@@ -107,6 +108,11 @@ object SettingsManager {
     var hideBasicSetting: Boolean
         get() = sp.getBoolean(KEY_HIDE_BASIC_SETTING, false)
         set(v) = sp.edit().putBoolean(KEY_HIDE_BASIC_SETTING, v).apply()
+
+    /** 高级设置页底部的"样式预览"开关，默认开。 */
+    var previewEnabled: Boolean
+        get() = sp.getBoolean(KEY_PREVIEW_ENABLED, true)
+        set(v) = sp.edit().putBoolean(KEY_PREVIEW_ENABLED, v).apply()
 
     var circleAlphaMin: Int
         get() = sp.getInt(KEY_ALPHA_RANGE + "_Min", 40)

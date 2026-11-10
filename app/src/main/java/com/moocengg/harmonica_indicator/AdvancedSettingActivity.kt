@@ -50,6 +50,9 @@ class AdvancedSettingActivity : AppCompatActivity() {
     private lateinit var noteLineNoteType_spinner: Spinner
     private lateinit var noteLineReverse_switchcompat: SwitchCompat
     private lateinit var warn_hint: TextView
+    private lateinit var previewView: NoteIndicatorView
+    private lateinit var previewContainer: LinearLayout
+    private lateinit var previewEnabled_checkbox: CheckBox
 
     // 基础设置
     private lateinit var fallVelo_seekbar: SeekBar
@@ -65,6 +68,8 @@ class AdvancedSettingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 进程被回收后可能直接从本页恢复，不能指望 MainActivity 已经初始化过
+        SettingsManager.init(this)
         enableEdgeToEdge()
         setContentView(R.layout.activity_advanced_setting)
         rootView = findViewById<LinearLayout>(R.id.advanced_settings_root)
@@ -92,6 +97,17 @@ class AdvancedSettingActivity : AppCompatActivity() {
         noteLineNoteType_spinner = findViewById(R.id.advanced_setting_noteLineNoteType_spinner)
         noteLineReverse_switchcompat = findViewById(R.id.advanced_setting_noteLineReverse_switchcompat)
         warn_hint = findViewById(R.id.advanced_setting_warnHint)
+
+        // 底部样式预览：复用 NoteIndicatorView 的预览模式，它会自己按 10Hz 读设置刷新
+        previewView = findViewById(R.id.advanced_setting_preview_view)
+        previewContainer = findViewById(R.id.advanced_setting_preview_container)
+        previewEnabled_checkbox = findViewById(R.id.advanced_setting_previewEnabled_checkbox)
+        previewEnabled_checkbox.isChecked = SettingsManager.previewEnabled
+        applyPreviewEnabled(SettingsManager.previewEnabled)
+        previewEnabled_checkbox.setOnCheckedChangeListener { _, isChecked ->
+            SettingsManager.previewEnabled = isChecked
+            applyPreviewEnabled(isChecked)
+        }
 
         // 基础设置
         fallVelo_seekbar = findViewById(R.id.advanced_setting_fallVelo_seekbar)
@@ -377,6 +393,15 @@ class AdvancedSettingActivity : AppCompatActivity() {
             resetAllAdvancedSetting()
         }
     }
+    /**
+     * 预览开关。关掉时必须同时 `previewMode = false` 把帧循环停掉，
+     * 只把容器设成 GONE 是停不掉 ticker 的（视图还在窗口里，照样每秒画 60 次）。
+     */
+    private fun applyPreviewEnabled(enabled: Boolean) {
+        previewView.previewMode = enabled
+        previewContainer.visibility = if (enabled) View.VISIBLE else View.GONE
+    }
+
     private fun checkIfSettingMayConflict(){
         val transition = AutoTransition().apply {
             duration = 300

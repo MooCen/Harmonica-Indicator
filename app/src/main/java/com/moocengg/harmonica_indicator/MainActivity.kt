@@ -307,7 +307,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun parseMidiBytes() {
-        indicateText.text = $"文件：${selectFileName}\n状态：未解析，请重新导入"
+        indicateText.text = "文件：${selectFileName}\n状态：未解析，请重新导入"
         val bytes = midiByteContent
         if(bytes==null){
             Toast.makeText(this@MainActivity, "读取MIDI文件失败, 传入了一个空值", Toast.LENGTH_SHORT).show()
@@ -315,8 +315,18 @@ class MainActivity : AppCompatActivity() {
         }
         RefreshData()
         val music = Midi1Music()
-        music.read(bytes.toList())
-        //Toast.makeText(this@MainActivity, "MIDI文件已完成读取", Toast.LENGTH_SHORT).show()
+        try {
+            music.read(bytes.toList())
+        } catch (e: Exception) {
+            // 文件损坏 / 不是标准 MIDI / 库不支持的边角情况：友好退出，别让整个 App 崩
+            Log.e("MainActivity", "MIDI 解析失败", e)
+            RefreshData()
+            OverlayState.updateINFO(INFO("",0,0,emptyList()))
+            OverlayState.updateNotes(emptyList())
+            indicateText.text = "文件：${selectFileName}\n状态：解析失败，文件可能已损坏"
+            Toast.makeText(this@MainActivity, "MIDI 解析失败：${e.message}", Toast.LENGTH_LONG).show()
+            return
+        }
 
         //获取原始内容
         division = getDivisionFromByteArray(bytes)
@@ -338,18 +348,16 @@ class MainActivity : AppCompatActivity() {
                 nowTick+=event.deltaTime
                 //Log.i("MainActivity","当前第${nowTick}tick，消息类型码：${event.message.statusCode.toInt()}，msb值为：${event.message.msb.toInt()}")
                 if((event.message.statusCode.toInt() xor MidiChannelStatus.NOTE_ON) and 0xFF == 0x00){
-                    syllables.add(syllable(nowTick,event.message.msb.toInt()))
+                    // MIDI 规范里 "NOTE_ON + 力度 0" 等价于 NOTE_OFF。
+                    // 不少音序器/游戏导出的谱面就是这么写的，当成新音符开端会留下永远闭合不了的悬挂音符。
+                    if(event.message.lsb.toInt() == 0){
+                        closeSyllable(event.message.msb.toInt(), nowTick)
+                    }else{
+                        syllables.add(syllable(nowTick,event.message.msb.toInt()))
+                    }
                 }
                 if((event.message.statusCode.toInt() xor MidiChannelStatus.NOTE_OFF) and 0xFF == 0x00){
-                    for(syll in syllables.filter { it.endTick < 0 }){
-                        if(syll.pitch == event.message.msb.toInt()){
-                            syll.endTick=nowTick
-                            if(syll.startTick==nowTick){
-                                Log.w("MainActivity", "${syll.startTick}tick开始的音符长度为0")
-                            }
-                            break
-                        }
-                    }
+                    closeSyllable(event.message.msb.toInt(), nowTick)
                 }
                 if((event.message.statusCode.toInt() xor Midi1Status.META) and 0xFF == 0x00){ // Tempo变速事件
                     if((event.message.metaType.toInt() xor MidiMetaType.TEMPO) and 0xFF == 0x00){
@@ -371,13 +379,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        //修正原始内容
-        for(syll in syllables){
-            if(syll.endTick < 0){
-                syllables.remove(syll)
-            }
-            //Log.i("MainActivity","这个音符音高为${syll.pitch}，开始tick：${syll.startTick}, 结束tick：${syll.endTick}")
+        //修正原始内容：没等到 NOTE_OFF 的"悬挂音符"直接丢掉。
+        //★ 不能边 for 边 remove（会抛 ConcurrentModificationException），交给 removeAll。
+        val orphanCount = syllables.count { it.endTick < 0 }
+        if(orphanCount > 0){
+            Log.w("MainActivity", "丢弃 $orphanCount 个没有 NOTE_OFF 的悬挂音符")
         }
+        syllables.removeAll { it.endTick < 0 }
         syllables = syllables.sortedBy { it.startTick }.toMutableList()
         TempoList = TempoList.sortedBy { it.startTick }.toMutableList()
         if(TempoList.size==1){
@@ -386,7 +394,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this@MainActivity, "整首曲子中有${TempoList.size-1}处变速", Toast.LENGTH_SHORT).show()
         }
 
-        indicateText.text = $"文件：${selectFileName}\n状态：已解析"
+        indicateText.text = "文件：${selectFileName}\n状态：已解析"
 
         // 生成Note序列
         var (lastTuneGear: Int, lastSemitone: Boolean) = 0 to false
@@ -452,8 +460,25 @@ class MainActivity : AppCompatActivity() {
         }
         //Log.i("MainActivity", "最后一个有效音符的开始时间：${notes[notes.size-1].startTime}")
         WholeINFO = INFO(name = selectFileName,(60000000.0 / TempoList[0].value).toInt(), noteCollection = notes)
-        indicateText.text = $"文件：${selectFileName}\n状态：已就绪"
+        indicateText.text = "文件：${selectFileName}\n状态：已就绪"
         transmitINFO2Service()
+    }
+
+    /**
+     * 给"同音高、还没结束"的第一个音符收尾。
+     * 这里只改 endTick、不动列表结构——遍历时增删同一个列表会抛 ConcurrentModificationException。
+     * 找不到匹配（孤儿 NOTE_OFF / 多轨串音）就静默忽略，不让脏数据把整个解析带崩。
+     */
+    private fun closeSyllable(pitch: Int, nowTick: Long){
+        for(syll in syllables){
+            if(syll.endTick < 0 && syll.pitch == pitch){
+                syll.endTick = nowTick
+                if(syll.startTick == nowTick){
+                    Log.w("MainActivity", "${syll.startTick}tick开始的音符长度为0")
+                }
+                return
+            }
+        }
     }
 
     fun CalcPitchNum(pitch: Int) : Pair<Int, Boolean>{

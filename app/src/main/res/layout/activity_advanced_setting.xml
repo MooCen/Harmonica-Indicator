@@ -726,6 +726,53 @@
                 android:text="重置所有高级设置"
                 />
 
+            <!-- ===== 样式预览：复用 NoteIndicatorView 的 previewMode，三拍一循环 ===== -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="36dp"
+                android:layout_marginEnd="24dp"
+                android:text="样式预览"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <CheckBox
+                android:id="@+id/advanced_setting_previewEnabled_checkbox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="8dp"
+                android:checked="true"
+                android:text="启用预览 - 使用横屏预览真实大小"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="16sp" />
+
+            <LinearLayout
+                android:id="@+id/advanced_setting_preview_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="24dp"
+                    android:text="上：功能线　下：音符线　·　单押 → 功能线单押+音符线双押 → 两条都双押"
+                    android:textSize="12sp" />
+
+                <com.moocengg.harmonica_indicator.NoteIndicatorView
+                    android:id="@+id/advanced_setting_preview_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_marginStart="24dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="24dp" />
+            </LinearLayout>
+
         </LinearLayout>
     </ScrollView>
 

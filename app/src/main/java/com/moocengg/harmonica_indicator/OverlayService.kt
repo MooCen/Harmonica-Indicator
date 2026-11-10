@@ -6,6 +6,7 @@ import android.animation.ValueAnimator
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -89,6 +90,9 @@ class OverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // 本服务是 START_STICKY：进程被回收后系统可能单独把它拉起来，
+        // 此时 MainActivity 的 init 不一定跑过，必须先在这里兜底初始化。
+        SettingsManager.init(this)
         OverlayState.OverlayAlive = true
         Log.d("OverlayService", "onCreate")
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -315,7 +319,7 @@ class OverlayService : Service() {
     }
 
     private fun startPlayback() {
-        if(OverlayState.WholeINFO.value.name==""&&OverlayState.WholeINFO.value.bpm==0){
+        if(OverlayState.WholeINFO.value.name==""||OverlayState.WholeINFO.value.bpm==0){
             Toast.makeText(this@OverlayService, "当前暂未选择曲目，选择后可开始播放", Toast.LENGTH_SHORT).show()
             return
         }
@@ -408,27 +412,27 @@ class OverlayService : Service() {
             .setContentTitle("谱面提示运行中")
             .setContentText("点击返回 App 可停止")
             .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentIntent(buildContentIntent())
             .build()
     }
 
+    /**
+     * 点通知回到 App 用的 PendingIntent。
+     * 必须带 FLAG_IMMUTABLE（Android 12+ 强制），否则启动时会直接抛 IllegalArgumentException。
+     */
+    private fun buildContentIntent(): PendingIntent = PendingIntent.getActivity(
+        this,
+        0,
+        Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        },
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+    )
+
     fun syncSetting(){
-        noteTrack.loadResourcePack(SettingsManager.resourcePack)
-        noteTrack.playSpeed = SettingsManager.playSpeed
-        noteTrack.fallVelo = SettingsManager.fallVelo
-        noteTrack.noteSizeBonus = SettingsManager.noteSizeBonus
-        noteTrack.circleShrinkRate = SettingsManager.circleShrinkRate.toFloat()
-        noteTrack.circleLeadTime = SettingsManager.circleLeadTime
-        noteTrack.effectSizeBonus = SettingsManager.effectSizeBonus
-        noteTrack.circleAlphaMin = SettingsManager.circleAlphaMin
-        noteTrack.circleAlphaMax = SettingsManager.circleAlphaMax
-        noteTrack.noteLineSpeed = SettingsManager.noteLineSpeed
-        noteTrack.funcLineSpeed = SettingsManager.funcLineSpeed
-        noteTrack.noteLineType = SettingsManager.noteLineType
-        noteTrack.funcLineType = SettingsManager.funcLineType
-        noteTrack.noteLineNoteType = SettingsManager.noteLineNoteType
-        noteTrack.noteLineReverse = SettingsManager.noteLineReverse
-        noteTrack.funcLineNoteType = SettingsManager.funcLineNoteType
-        noteTrack.funcLineReverse = SettingsManager.funcLineReverse
+        // 具体同步逻辑搬到了 NoteIndicatorView.syncFromSettings()，
+        // 好让设置页的预览复用同一份，不会两边写岔
+        noteTrack.syncFromSettings()
     }
 
     private fun updatePlaying(deltaTime: Float, elapsedMs: Long){
