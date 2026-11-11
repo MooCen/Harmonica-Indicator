@@ -16,3 +16,8 @@ local.properties
 
 # 源码备份（由开发者/助手生成，不进仓库）
 /backups/
+
+# 构建产物：一律走 GitHub Releases，不进仓库
+# （APK 每次构建都会变，二进制进 git 既没法 review、又会让仓库每次发版涨几 MB）
+/app/debug/
+/app/release/
