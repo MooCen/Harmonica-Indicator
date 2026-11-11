@@ -37,7 +37,7 @@ class AboutActivity : AppCompatActivity() {
 
         contactAuthor.setOnLongClickListener { v ->
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            cm.setPrimaryClip(ClipData.newPlainText("作者联系方式", "Bilibili：中二病晚期的漠笙\nQQ：848566295\n邮箱：MooCenGG@163.com"))
+            cm.setPrimaryClip(ClipData.newPlainText("作者联系方式", "Bilibili：中二病晚期の漠笙\nQQ：848566295\n邮箱：MooCenGG@163.com"))
             Toast.makeText(applicationContext, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
             true
         }
