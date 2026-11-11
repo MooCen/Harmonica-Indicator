@@ -117,6 +117,38 @@ my_pack.zip
 
 复制给别人，对方粘贴进去就能复刻你的手感。**注意：字段是定长的，同一个码只对相同版本的 App 有意义。**
 
+## 权限与安全说明
+
+本应用只申请了 4 个权限，全部服务于"在游戏上方画一层提示"这一件事：
+
+| 权限 | 用途 | 说明 |
+|---|---|---|
+| `SYSTEM_ALERT_WINDOW` | 显示在其他应用上层 | 悬浮窗本体，**唯一必需的权限** |
+| `POST_NOTIFICATIONS` | 前台服务的常驻通知 | Android 13+ 才弹；拒绝也不影响使用 |
+| `FOREGROUND_SERVICE` | 允许服务在前台长期运行 | 切到游戏后提示才不会中途被系统杀掉 |
+| `FOREGROUND_SERVICE_SPECIAL_USE` | 前台服务的特殊用途声明 | 系统要求，用途标注为 `overlay_hint_for_external_app` |
+
+**没有申请的权限**——下面这些才是"外挂"通常需要的东西，本应用一个都没有：
+
+- ❌ `INTERNET` / `ACCESS_NETWORK_STATE`：**连不了网**，也就无法上传任何数据，更做不了"雷达"
+- ❌ 无障碍服务（`BIND_ACCESSIBILITY_SERVICE`）：读不到别的应用的界面
+- ❌ 屏幕录制 / 截屏（`MediaProjection`）：看不到游戏画面
+- ❌ 存储读写（除应用私有目录）：只在你主动导入资源包时，经系统文件选择器读取你选中的那个文件
+- ❌ 任何 root / 注入 / 模拟按键的能力
+
+**自己怎么核对**：手机「设置 → 应用 → HarmonicaIndicator → 权限」，除了"显示在其他应用上层"和（可选的）通知，其余应全部是"未授予"。源码里也只有这一份 `AndroidManifest.xml`，权限声明原文就是那 4 行：
+
+```xml
+<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+```
+
+一句话总结：**它只能读你自己给的 MIDI，然后在屏幕上画画。**
+
+> 之所以把这一节写得这么细，是因为本应用曾因被误认为"外挂"而遇到过平台下架。把权限逐条摊开、让任何人自己核对，是最省事的自证方式。
+
 ## 常见问题
 
 **为什么要悬浮窗权限？**
@@ -126,7 +158,7 @@ my_pack.zip
 目前只做视觉提示。谱面里的 `.ogg` 音效还没有接播放逻辑。
 
 **会不会被当成外挂？**
-本应用不联网、不读其他应用的内存、不注入、不改游戏文件，只做两件事：读你给的 MIDI、在屏幕上画提示。判定和成绩完全由游戏自己算。作者就是因为被误判成外挂下架过视频，所以这条红线会一直守着。
+本应用不联网、不读其他应用的内存、不注入、不改游戏文件，只做两件事：读你给的 MIDI、在屏幕上画提示。判定和成绩完全由游戏自己算。完整的权限清单见上面「权限与安全说明」，可以逐条核对。
 
 **为什么我的谱子解析不出来？**
 只支持标准 MIDI（PPQ 格式）。SMPTE 时间码的 MIDI 不支持；文件损坏会提示"解析失败"而不是崩溃。
