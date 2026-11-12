@@ -101,6 +101,8 @@ class NoteIndicatorView @JvmOverloads constructor(
     var noteLineReverse: Boolean = false // 反转下落
     var funcLineNoteType: Int = 3
     var funcLineReverse: Boolean = false
+    // 时值短于它的音按 Tap 画（秒）；0 表示不过滤
+    var holdMinTimeSec: Float = 0.15f
 
 
     // 目标点在 NoteIndicatorView 局部坐标系里的位置
@@ -227,6 +229,11 @@ class NoteIndicatorView @JvmOverloads constructor(
             return
         }
         packInfo = info
+        // 方便排查皮肤问题：hold 的两套裁剪参数和音符图尺寸都打出来
+        Log.i(
+            "NoteIndicatorView",
+            "holdAtlas=${info.holdAtlas} holdAtlasMH=${info.holdAtlasMH}"
+        )
         // 加载音符图片
         loadNoteDrawables(packName)
         sheetCols = info.hitFxCols.coerceAtLeast(1)
@@ -359,7 +366,10 @@ class NoteIndicatorView @JvmOverloads constructor(
         notes = OverlayState.notes.value
 
         // ★ 重置所有音符的 clickTime 与活跃特效，让新一轮播放能重新触发特效
-        notes.forEach { it.clickTime = -1f }
+        notes.forEach {
+            it.clickTime = -1f
+            it.holdFxTime = -1f
+        }
         noteFuncType2FuncLineSpeed = mapOf<Int, Float>(1 to noteLineSpeed, 2 to funcLineSpeed)
         noteFuncType2LineTypeMap = mapOf<Int, Int>(1 to noteLineType, 2 to funcLineType)
         noteFuncType2NoteDrawableMap = mapOf<Int, Int>(1 to noteLineNoteType, 2 to funcLineNoteType)
@@ -404,6 +414,7 @@ class NoteIndicatorView @JvmOverloads constructor(
         noteLineReverse = SettingsManager.noteLineReverse
         funcLineNoteType = SettingsManager.funcLineNoteType
         funcLineReverse = SettingsManager.funcLineReverse
+        holdMinTimeSec = SettingsManager.holdMinTime
     }
 
     /** 悬浮窗用：强制重新确认资源包 + 灌参数（保留"每次开播都重试加载"的老行为）。 */
@@ -432,10 +443,6 @@ class NoteIndicatorView @JvmOverloads constructor(
             drawPreview(canvas)
             return
         }
-        // 判定线
-        // 实心主线
-        if(noteLineType == 1) canvas.drawLine(noteLineX - lineHalfLength, noteLineY, noteLineX + lineHalfLength, noteLineY, lineCorePaint)
-        if(funcLineType == 1) canvas.drawLine(funcLineX - lineHalfLength, funcLineY, noteLineX + lineHalfLength, funcLineY, lineCorePaint)
 
         // note
 
@@ -448,10 +455,20 @@ class NoteIndicatorView @JvmOverloads constructor(
         //Log.i("NoteIndicatorView", "当前曲目：${WholeINFO.name}")
         //Log.i("NoteIndicatorView", "当前曲目note数：${notes.size}")
         for (note in notes) {
-            //drawable = noteDrawableDict[note.funcType to note.doubleRhyme] ?: continue
-            drawable = noteDrawableDict[noteFuncType2NoteDrawableMap[note.funcType] to if(note.funcType==1) (note.doubleRhyme) else true] ?: continue
-            //val bmp = noteBitmapCache[note.funcType to note.doubleRhyme] ?: continue
-            val bmp = noteBitmapCache[noteFuncType2NoteDrawableMap[note.funcType] to if(note.funcType==1) (note.doubleRhyme) else true] ?: continue
+            // 先决定这张图怎么画：
+            // 选了 Hold 但时值短于阈值的，要退回 Tap —— 连贴图也换成 Tap 的，
+            // 否则"重定向到 Tap"看到的还是 hold.png 那一整张，等于没换。
+            // ⚠️ 阈值只管"唱名区"（noteLine）的真音符：功能提示音时值恒为 0，
+            // 套上阈值会永远被降级，等于废掉"功能线选 Hold"这个选项。
+            var drawType = noteFuncType2NoteDrawableMap[note.funcType] ?: 1
+            val noteDurationSec = note.endTime - note.startTime
+            val isHoldNote = drawType == 4 &&
+                    (note.funcType != 1 || noteDurationSec >= holdMinTimeSec)
+            if (drawType == 4 && !isHoldNote) drawType = 1
+            val imageKey = drawType to if (note.funcType == 1) note.doubleRhyme else true
+
+            drawable = noteDrawableDict[imageKey] ?: continue
+            val bmp = noteBitmapCache[imageKey] ?: continue
             noteSizeX = (bmp.width * pointScaleX / 7).toInt()
             noteSizeY = (bmp.height * pointScaleY / 7).toInt()
 
@@ -521,35 +538,60 @@ class NoteIndicatorView @JvmOverloads constructor(
                 continue
             }
             else{
-                // 当前时间超过 endTime → 生命周期结束
-                //if (currentTimeMs/1000f > note.endTime / playSpeed) {
-                if (currentTimeMs / 1000f > note.startTime / playSpeed) {
-                    if(note.clickTime<0){
-                        note.clickTime = currentTimeMs/1000f
-                        // combo 只统计 noteLine 上的音符（funcType = 1）；功能提示（funcType = 2）不计
-                        if (note.funcType == 1) OverlayState.updateCombo(true)
+                val nowSec = currentTimeMs / 1000f
+                val noteStartSec = note.startTime / playSpeed
+                val noteEndSec = note.endTime / playSpeed
+                val fallSpeed = fallVelo * (noteFuncType2FuncLineSpeed[note.funcType] ?: 1f)
+                val isReverse = lineType2ReverseMap[note.funcType] ?: false
+                // Hold 只在"时值够长"时才画长条；短于阈值的已经被上面换算成 Tap 了
+                val isHold = isHoldNote
 
-                        // 生成一个特效实例     ——咱要不后边改用对象池？
-                        val effectSize = 200f * pointScaleX * effectSizeBonus
-                        activeEffects.add(
-                            effectPool.acquire(
-                                startTimeSec = note.clickTime,
-                                x = targetX,
-                                y = targetY,
-                                size = effectSize
-                            )
-                        )
-                        /*val effectSize = 300f   // 特效显示大小
-                        activeEffects.add(
-                            HitEffect(
-                                startTimeSec = note.clickTime,
-                                x = targetX,
-                                y = targetY,
-                                size = effectSize
-                            ))*/
+                // 到点：combo / 特效只触发一次（Hold 也只在"头"碰到判定线时触发）
+                if (nowSec > noteStartSec && note.clickTime < 0) {
+                    note.clickTime = nowSec
+                    // 记下这一拍，Hold 后续每 0.25s 的补特效从这一刻开始数，避免刚命中就叠一次
+                    note.holdFxTime = nowSec
+                    // combo 只统计 noteLine 上的音符（funcType = 1）；功能提示（funcType = 2）不计
+                    if (note.funcType == 1) OverlayState.updateCombo(true)
+                    spawnHitEffect(nowSec)
+                }
+
+                if (isHold) {
+                    // 尾也过线，整条才算结束
+                    if (nowSec > noteEndSec) continue
+                    // 只有"头已经贴线、尾还没到线"的那段才补特效：
+                    // 这里必须同时判断 nowSec >= noteStartSec，否则音符还在天上就会被每 0.25s 炸一次。
+                    if (nowSec >= noteStartSec && nowSec - note.holdFxTime >= 0.25f) {
+                        note.holdFxTime = nowSec
+                        spawnHitEffect(nowSec)
                     }
+                    // 方向：normal 从上方落下来（dir = -1），reverse 从下方升上去（dir = +1）
+                    val dir = if (isReverse) 1f else -1f
+                    val headY = targetY + dir * (noteStartSec - nowSec) * fallSpeed
+                    val tailY = targetY + dir * (noteEndSec - nowSec) * fallSpeed
+                    // 头过线后立刻不再绘制头部贴图（"被判定线吃掉"），长条只留中间+尾
+                    val headVisible = if (isReverse) headY >= targetY else headY <= targetY
+                    val endA = if (isReverse) maxOf(headY, targetY) else tailY
+                    val endB = if (isReverse) tailY else minOf(headY, targetY)
+                    val top = minOf(endA, endB)
+                    val bottom = maxOf(endA, endB)
+                    if (bottom < -64f || top > height + 64f) continue
+            // ⚠️ atlas 必须跟着"实际用的那张贴图"走：
+            // 功能线（funcType=2）固定用 *_mh 贴图，所以要用 holdAtlasMH。
+            // 否则会拿 hold_mh 去配单押的 [50,53]，而 hold_mh 底部 53px 近乎全透明，
+            // 画出来就是"只有尾、没有头"。
+            val usesMhImage = if (note.funcType == 1) note.doubleRhyme else true
+            val atlas = holdAtlasFor(usesMhImage)
+                    drawHoldBar(
+                        canvas, bmp, targetX, top, bottom,
+                        atlas.first, atlas.second,
+                        noteSizeX * pointScaleX * noteSizeBonus, isReverse, headVisible
+                    )
                     continue
                 }
+
+                // 非 Hold：过线就消失
+                if (nowSec > noteStartSec) continue
 
                 // 距离"该按键"还剩多少毫秒。正数=还没到，负数=已经过了
                 val dt = note.startTime / playSpeed - currentTimeMs / 1000f
@@ -582,6 +624,10 @@ class NoteIndicatorView @JvmOverloads constructor(
             }
 
         }
+        // 判定线画在音符之上：音符从线下面穿过、线盖在最上面（还原 Phigros 的层次）
+        if(noteLineType == 1) canvas.drawLine(noteLineX - lineHalfLength, noteLineY, noteLineX + lineHalfLength, noteLineY, lineCorePaint)
+        if(funcLineType == 1) canvas.drawLine(funcLineX - lineHalfLength, funcLineY, noteLineX + lineHalfLength, funcLineY, lineCorePaint)
+
         // 绘制所有活跃特效
         if (effectRegionDecoder != null) {
             val frameDuration = 1f / effectFps
@@ -616,6 +662,135 @@ class NoteIndicatorView @JvmOverloads constructor(
                 canvas.drawBitmap(frameBitmap, null, dstRect, effectPaint)
             }
         }
+    }
+
+    /**
+     * 取当前皮肤的 Hold 裁剪参数 `[上端像素, 下端像素]`。
+     * 双押优先用 holdAtlasMH，没配就退回 holdAtlas；两套都没有就当 0（整张图拉伸）。
+     */
+    private fun holdAtlasFor(doubleRhyme: Boolean): Pair<Int, Int> {
+        val preferred = if (doubleRhyme) packInfo.holdAtlasMH else packInfo.holdAtlas
+        val fallback = if (doubleRhyme) packInfo.holdAtlas else packInfo.holdAtlasMH
+        val raw = if (preferred.isNotEmpty()) preferred else fallback
+        val up = raw.getOrElse(0) { 0 }.coerceAtLeast(0)
+        val down = raw.getOrElse(1) { 0 }.coerceAtLeast(0)
+        return up to down
+    }
+
+    /**
+     * 画一条 Hold：把纹理按 `[上端, 下端]` 裁成三段拼起来——
+     * 尾段（上）和头段（下）保持原始像素比例，中间那截拉开撑满。
+     *
+     * top / bottom 是长条在屏幕上的上下沿，**bottom 是"头"**（贴判定线的那端）。
+     * reverse 时整块上下镜像（头会跑到上面，纹理也翻过来），和普通 note 的处理一致。
+     * showHead = false 表示头已经过线，头部贴图立即不再绘制（长条只留中间+尾）。
+     * top == bottom（零时长）时只画头+尾拼成的一小块（中间不画），头尖贴住锚点。
+     */
+    private fun drawHoldBar(
+        canvas: Canvas,
+        bmp: Bitmap,
+        cx: Float,
+        top: Float,
+        bottom: Float,
+        atlasUp: Int,
+        atlasDown: Int,
+        width: Float,
+        reverse: Boolean,
+        showHead: Boolean = true
+    ) {
+        if (width <= 0.5f) return
+
+        val scale = width / bmp.width
+        val upSrc = atlasUp.coerceIn(0, bmp.height)
+        val downSrc = atlasDown.coerceIn(0, bmp.height)
+        val len = bottom - top
+        var upH = upSrc * scale
+        // 零时长的小块永远带头（"头过线消失"只对真正有长度的 Hold 有意义）
+        var downH = if (showHead || len <= 1f) downSrc * scale else 0f
+        val halfW = width / 2f
+
+        // 零时长：中间不画，头+尾拼成一小块，**中心对准 note 位置**（和普通音符一致）
+        if (len <= 1f) {
+            val total = upH + downH
+            if (total <= 0.5f) return
+            val cy = (top + bottom) / 2f
+            canvas.save()
+            if (reverse) canvas.scale(1f, -1f, cx, cy)
+            if (upH > 0f && upSrc > 0) {
+                canvas.drawBitmap(
+                    bmp,
+                    Rect(0, 0, bmp.width, upSrc),
+                    RectF(cx - halfW, cy - total / 2f, cx + halfW, cy - total / 2f + upH),
+                    null
+                )
+            }
+            if (downH > 0f && downSrc > 0) {
+                canvas.drawBitmap(
+                    bmp,
+                    Rect(0, bmp.height - downSrc, bmp.width, bmp.height),
+                    RectF(cx - halfW, cy + total / 2f - downH, cx + halfW, cy + total / 2f),
+                    null
+                )
+            }
+            canvas.restore()
+            return
+        }
+
+        // 条太短时把固定段等比压一压，免得头尾叠一起
+        val fixedH = upH + downH
+        if (fixedH > len && fixedH > 0f) {
+            val k = len / fixedH
+            upH *= k
+            downH *= k
+        }
+        val midTop = top + upH
+        val midBottom = bottom - downH
+
+        canvas.save()
+        if (reverse) canvas.scale(1f, -1f, cx, (top + bottom) / 2f)
+
+        // 尾段（纹理上端）
+        if (upH > 0f && upSrc > 0) {
+            canvas.drawBitmap(
+                bmp,
+                Rect(0, 0, bmp.width, upSrc),
+                RectF(cx - halfW, top, cx + halfW, top + upH),
+                null
+            )
+        }
+        // 中段（拉伸）
+        val midSrcBottom = (bmp.height - downSrc).coerceIn(upSrc, bmp.height)
+        if (midBottom - midTop > 0.5f && midSrcBottom > upSrc) {
+            canvas.drawBitmap(
+                bmp,
+                Rect(0, upSrc, bmp.width, midSrcBottom),
+                RectF(cx - halfW, midTop, cx + halfW, midBottom),
+                null
+            )
+        }
+        // 头段（纹理下端）
+        if (downH > 0f && downSrc > 0) {
+            canvas.drawBitmap(
+                bmp,
+                Rect(0, bmp.height - downSrc, bmp.width, bmp.height),
+                RectF(cx - halfW, bottom - downH, cx + halfW, bottom),
+                null
+            )
+        }
+        canvas.restore()
+    }
+
+    /** 在判定点放一个击打特效（普通音符的 header 和 Hold 的 0.25s 循环都用它）。 */
+    private fun spawnHitEffect(atSec: Float) {
+        val effectSize = 200f * pointScaleX * effectSizeBonus
+        activeEffects.add(
+            effectPool.acquire(
+                startTimeSec = atSec,
+                x = targetX,
+                y = targetY,
+                size = effectSize
+            )
+        )
     }
 
     private fun calculatePointPosByCalibPoint(lane: Int, funcType: Int): IntArray{
@@ -795,10 +970,8 @@ class NoteIndicatorView @JvmOverloads constructor(
         // 判定点宽度 = 校准图里那两个 50dp 的小 View
         previewPointW = 50f * density * previewPointScale
 
-        // 判定线：只有线型那一组才画线（线宽也按真实公式缩放）
+        // 判定线线宽按真实公式缩放；真正的绘制放在音符之后（和真机一样，线在顶层）
         lineCorePaint.strokeWidth = 16f * previewPointScale * previewScale
-        if (funcLineType == 1) canvas.drawLine(0f, funcLineYPreview, w, funcLineYPreview, lineCorePaint)
-        if (noteLineType == 1) canvas.drawLine(0f, noteLineYPreview, w, noteLineYPreview, lineCorePaint)
 
         // 圈型描边：真实是 12px
         circlePaint.strokeWidth = 12f * previewScale
@@ -807,32 +980,43 @@ class NoteIndicatorView @JvmOverloads constructor(
         val beatDur = (circleLeadTime + 0.35f).coerceIn(0.9f, 2.5f)
         val elapsed = (SystemClock.elapsedRealtime() - previewStartMs) / 1000f
         val beat = ((elapsed / beatDur).toInt()) % 3
-        val timeToHit = beatDur - (elapsed % beatDur)
+        val beatElapsed = elapsed % beatDur
 
         drawPreviewBeat(
-            canvas, cx, noteLineYPreview, timeToHit, noteLineType,
-            noteLineSpeed, noteLineReverse, noteLineNoteType, beat >= 1, isFunc = false, viewH = h
+            canvas, cx, noteLineYPreview, noteLineType,
+            noteLineSpeed, noteLineReverse, noteLineNoteType, beat >= 1, isFunc = false, viewH = h,
+            beatElapsed = beatElapsed, beatDurSec = beatDur
         )
         if (beat >= 1) {
             drawPreviewBeat(
-                canvas, cx, funcLineYPreview, timeToHit, funcLineType,
-                funcLineSpeed, funcLineReverse, funcLineNoteType, beat == 2, isFunc = true, viewH = h
+                canvas, cx, funcLineYPreview, funcLineType,
+                funcLineSpeed, funcLineReverse, funcLineNoteType, beat == 2, isFunc = true, viewH = h,
+                beatElapsed = beatElapsed, beatDurSec = beatDur
             )
         }
+
+        // 判定线最后画，压在音符上面
+        if (funcLineType == 1) canvas.drawLine(0f, funcLineYPreview, w, funcLineYPreview, lineCorePaint)
+        if (noteLineType == 1) canvas.drawLine(0f, noteLineYPreview, w, noteLineYPreview, lineCorePaint)
     }
 
     /** 画"一条线"这一拍该有的东西；lineType 决定是下落音符还是指示圈。 */
     private fun drawPreviewBeat(
-        canvas: Canvas, x: Float, targetY: Float, timeToHit: Float,
+        canvas: Canvas, x: Float, targetY: Float,
         lineType: Int, speedMul: Float, reverse: Boolean, noteType: Int,
-        doubleRhyme: Boolean, isFunc: Boolean, viewH: Float
+        doubleRhyme: Boolean, isFunc: Boolean, viewH: Float,
+        beatElapsed: Float, beatDurSec: Float
     ) {
+        // 统一落点：一拍 68% 处触线。音符 / 指示圈 / Hold 全用这一个时刻，
+        // 否则换个样式触线时点就变了（功能线设成 Hold 后时点漂移就是这么来的）。
+        val dtToHit = beatDurSec * 0.68f - beatElapsed
+
         // —— 指示圈：和真实绘制同一套公式（半径 = 目标半径 + 剩余时间 × 收缩速度）——
         if (lineType == 2) {
-            if (circleLeadTime <= 0f || timeToHit > circleLeadTime) return
+            if (circleLeadTime <= 0f || dtToHit > circleLeadTime) return
             val targetR = previewPointW / 2.2f
-            val radius = (targetR + timeToHit * circleShrinkRate) * previewScale
-            val progress = 1f - (timeToHit / circleLeadTime).coerceIn(0f, 1f)
+            val radius = (targetR + dtToHit * circleShrinkRate) * previewScale
+            val progress = 1f - (dtToHit / circleLeadTime).coerceIn(0f, 1f)
             val alpha = (circleAlphaMin + (circleAlphaMax - circleAlphaMin) * progress)
                 .toInt().coerceIn(0, 255)
             val paint = if (doubleRhyme) circlePaintDoubleRhyme else circlePaint
@@ -846,17 +1030,47 @@ class NoteIndicatorView @JvmOverloads constructor(
         val speed = (fallVelo * speedMul).coerceAtLeast(60f) * previewScale
         // 行程 = 判定线到"进场边"的距离，这样音符每次都从上/下边缘整段落进来
         val travel = (if (reverse) viewH - targetY else targetY).coerceAtLeast(1f)
-        if (timeToHit > travel / speed) return
+
+        // Hold 预览：0.3 秒长（功能线零时长 → 只画头+尾）；短于阈值时和真机一样退回 Tap
+        val holdLenSec = if (isFunc) 0f else 0.3f
+        // 阈值只管"唱名区"（!isFunc），功能线本来就该是 0 长 Hold
+        val drawAsHold = noteType == 4 && (isFunc || holdLenSec >= holdMinTimeSec)
+        // 退回 Tap 时连贴图也换成 Tap 的，否则画的还是 hold 那一整张
+        val effectiveType = if (noteType == 4 && !drawAsHold) 1 else noteType
 
         // 功能线在真实绘制里固定用 *_mh 图，音符线才看 doubleRhyme
-        val bmp = noteBitmapCache[noteType to if (isFunc) true else doubleRhyme] ?: return
+        val bmp = noteBitmapCache[effectiveType to if (isFunc) true else doubleRhyme] ?: return
 
         // 照抄真实绘制的尺寸公式：图片尺寸 × 校准缩放² × 大小倍率 ÷ 7，再按预览比例缩小。
         // （真实代码里 pointScaleX 被乘了两次，这里保持一致，否则预览会比真机小一圈。）
         val sizeScale = previewPointScale * previewPointScale * noteSizeBonus / 7f * previewScale
         val sizeW = bmp.width * sizeScale
         val sizeH = bmp.height * sizeScale
-        val y = targetY + (if (reverse) 1f else -1f) * timeToHit * speed
+
+        if (drawAsHold) {
+            // 头在统一落点触线，尾再往后 holdLenSec 秒到线
+            if (dtToHit + holdLenSec >= 0f) {
+                val dir = if (reverse) 1f else -1f
+                val headY = targetY + dir * dtToHit * speed
+                val tailY = headY + dir * holdLenSec * speed
+                val headVisible = if (reverse) headY >= targetY else headY <= targetY
+                val endA = if (reverse) maxOf(headY, targetY) else tailY
+                val endB = if (reverse) tailY else minOf(headY, targetY)
+                // 和真机同一套规则：功能线固定用 *_mh 图，atlas 也要跟着走
+                val atlas = holdAtlasFor(if (isFunc) true else doubleRhyme)
+                drawHoldBar(
+                    canvas, bmp, x,
+                    minOf(endA, endB), maxOf(endA, endB),
+                    atlas.first, atlas.second, sizeW, reverse, headVisible
+                )
+            }
+            return
+        }
+
+        if (dtToHit < 0f) return               // 已经过线，本拍不再画
+        if (dtToHit > travel / speed) return    // 还没进场
+
+        val y = targetY + (if (reverse) 1f else -1f) * dtToHit * speed
         previewDstRect.set(x - sizeW / 2f, y - sizeH / 2f, x + sizeW / 2f, y + sizeH / 2f)
         if (reverse) {
             canvas.save()

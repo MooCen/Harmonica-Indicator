@@ -378,6 +378,53 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/advanced_setting_holdMinTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="24dp"
+                        android:layout_weight="1"
+                        android:text="· 一个音持续时间小于设定值时，将其以 Tap 形式显示 "
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/advanced_setting_holdMinTime_rate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="24dp"
+                        android:text="0.15s"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="16sp" />
+                </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:text="   — 短于此时长的 Hold 会按 Tap 渲染  "
+                    android:textColor="?android:attr/textColorHint"
+                    android:textSize="11sp" />
+                <SeekBar
+                    android:id="@+id/advanced_setting_holdMinTime_seekbar"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:progress="15"
+                    android:min="0"
+                    android:max="100"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/advanced_setting_noteLineReverse"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

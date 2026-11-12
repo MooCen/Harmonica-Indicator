@@ -32,6 +32,7 @@ object SettingsManager {
     private const val KEY_ALPHA_RANGE = "circle_alpha_range"
     private const val KEY_HIDE_BASIC_SETTING = "hide_basic_setting"
     private const val KEY_PREVIEW_ENABLED = "preview_enabled"
+    private const val KEY_HOLD_MIN_TIME = "hold_min_time"
     private const val KEY_FUNC_LINE_SPEED = "func_line_speed"
     private const val KEY_NOTE_LINE_SPEED = "note_line_speed"
     private const val KEY_FUNC_LINE_TYPE = "func_line_type"
@@ -113,6 +114,14 @@ object SettingsManager {
     var previewEnabled: Boolean
         get() = sp.getBoolean(KEY_PREVIEW_ENABLED, true)
         set(v) = sp.edit().putBoolean(KEY_PREVIEW_ENABLED, v).apply()
+
+    /**
+     * Hold 的最短时值（秒）。时值短于它的音会被当成 Tap 画，而不是拖一条长条。
+     * 0 表示不启用这个过滤（所有 Hold 都按真实长度画）。
+     */
+    var holdMinTime: Float
+        get() = sp.getFloat(KEY_HOLD_MIN_TIME, 0.15f)
+        set(v) = sp.edit().putFloat(KEY_HOLD_MIN_TIME, v).apply()
 
     var circleAlphaMin: Int
         get() = sp.getInt(KEY_ALPHA_RANGE + "_Min", 40)

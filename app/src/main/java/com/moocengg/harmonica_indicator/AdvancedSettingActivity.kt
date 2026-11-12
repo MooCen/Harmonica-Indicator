@@ -42,12 +42,15 @@ class AdvancedSettingActivity : AppCompatActivity() {
     val syllableTypes = listOf("音符", "指示圈")
     private lateinit var funcLineType_spinner: Spinner
     private lateinit var noteLineType_spinner: Spinner
-    val noteTypes = listOf("Tap", "Drag", "Flick", "Hold(极短版)")
+    val noteTypes = listOf("Tap", "Drag", "Flick", "Hold")
     private lateinit var funcLineNoteTypeCollection: LinearLayout
     private lateinit var funcLineNoteType_spinner: Spinner
     private lateinit var funcLineReverse_switchcompat: SwitchCompat
     private lateinit var noteLineNoteTypeCollection: LinearLayout
     private lateinit var noteLineNoteType_spinner: Spinner
+    private lateinit var holdMinTimeCollection: LinearLayout
+    private lateinit var holdMinTime_seekbar: SeekBar
+    private lateinit var holdMinTime_text: TextView
     private lateinit var noteLineReverse_switchcompat: SwitchCompat
     private lateinit var warn_hint: TextView
     private lateinit var previewView: NoteIndicatorView
@@ -95,6 +98,9 @@ class AdvancedSettingActivity : AppCompatActivity() {
         funcLineReverse_switchcompat = findViewById(R.id.advanced_setting_funcLineReverse_switchcompat)
         noteLineNoteTypeCollection = findViewById(R.id.advanced_setting_noteLineNoteType)
         noteLineNoteType_spinner = findViewById(R.id.advanced_setting_noteLineNoteType_spinner)
+        holdMinTimeCollection = findViewById(R.id.advanced_setting_holdMinTime)
+        holdMinTime_seekbar = findViewById(R.id.advanced_setting_holdMinTime_seekbar)
+        holdMinTime_text = findViewById(R.id.advanced_setting_holdMinTime_rate)
         noteLineReverse_switchcompat = findViewById(R.id.advanced_setting_noteLineReverse_switchcompat)
         warn_hint = findViewById(R.id.advanced_setting_warnHint)
 
@@ -284,6 +290,26 @@ class AdvancedSettingActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
+        // Hold 最短时值：时值短于它的音按 Tap 画（0 = 不过滤）
+        holdMinTime_seekbar.max = 100
+        holdMinTime_seekbar.progress = (SettingsManager.holdMinTime * 100).toInt()
+        holdMinTime_text.text = "%.2fs".format(SettingsManager.holdMinTime)
+        holdMinTime_seekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    SettingsManager.holdMinTime = progress / 100f
+                    holdMinTime_text.text = "%.2fs".format(progress / 100f)
+                }
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+
+        // 首次进入就按当前线型决定显隐（不然要切一次才会更新）
+        val noteLineIsLine = SettingsManager.noteLineType == 1
+        noteLineNoteTypeCollection.visibility = if (noteLineIsLine) View.VISIBLE else View.GONE
+        holdMinTimeCollection.visibility = if (noteLineIsLine) View.VISIBLE else View.GONE
+
         noteLineReverse_switchcompat.isChecked = SettingsManager.noteLineReverse
         noteLineReverse_switchcompat.setOnCheckedChangeListener { button, isChecked ->
             SettingsManager.noteLineReverse = isChecked
@@ -409,6 +435,7 @@ class AdvancedSettingActivity : AppCompatActivity() {
         TransitionManager.beginDelayedTransition(rootView, transition)
         funcLineNoteTypeCollection.visibility = if(SettingsManager.funcLineType == 1) View.VISIBLE else View.GONE
         noteLineNoteTypeCollection.visibility = if(SettingsManager.noteLineType == 1) View.VISIBLE else View.GONE
+        holdMinTimeCollection.visibility = if(SettingsManager.noteLineType == 1) View.VISIBLE else View.GONE
 
         if((SettingsManager.funcLineType == SettingsManager.noteLineType && (SettingsManager.noteLineType == 1)) // 均为“音符”
             && (SettingsManager.funcLineReverse == SettingsManager.noteLineReverse) // 同向
@@ -513,6 +540,7 @@ class AdvancedSettingActivity : AppCompatActivity() {
         SettingsManager.funcLineReverse = false
         SettingsManager.noteLineNoteType = 1
         SettingsManager.noteLineReverse = false
+        SettingsManager.holdMinTime = 0.15f
         refreshAdvancedSettingUI()
     }
     private fun refreshAdvancedSettingUI(){
@@ -536,6 +564,8 @@ class AdvancedSettingActivity : AppCompatActivity() {
         val curNoteLineNoteTypeIdx = SettingsManager.noteLineNoteType - 1
         noteLineNoteType_spinner.setSelection(curNoteLineNoteTypeIdx)
         noteLineReverse_switchcompat.isChecked = SettingsManager.noteLineReverse
+        holdMinTime_seekbar.progress = (SettingsManager.holdMinTime * 100).toInt()
+        holdMinTime_text.text = "%.2fs".format(SettingsManager.holdMinTime)
         checkIfSettingMayConflict()
     }
     private fun resetAllBasicSetting(){

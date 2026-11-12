@@ -69,7 +69,9 @@ data class Note( // 最后计算
     val funcType: Int,
     val META: String,
     val doubleRhyme: Boolean = false,
-    var clickTime: Float = -1f
+    var clickTime: Float = -1f,
+    // Hold 长条专用的"上一次补特效的时刻"，和 clickTime 分开记，别复用
+    var holdFxTime: Float = -1f
 )
 
 class MainActivity : AppCompatActivity() {

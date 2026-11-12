@@ -32,7 +32,7 @@
 | Java | 17 编译，target 11 | `compileOptions` |
 | Kotlin 插件 | **没有显式声明** | 靠 AGP 9 内置的 Kotlin 支持；不要再手动加 `kotlin-android`，会冲突 |
 | viewBinding / Compose | 都没开 | 别指望 `binding.xxx` |
-| 版本 | **0.20.0（versionCode 2）** | 0.19.5 之后加了样式预览 |
+| 版本 | **0.21.1（versionCode 4）** | 0.20.x 加了样式预览 / SMPTE / Hold |
 
 - 用 Android Studio 直接打开根目录即可；JDK 17。
 - `local.properties` 里有 `sdk.dir`，不进 Git。
@@ -234,6 +234,8 @@ targetY = pointLoc[1] - trackLoc[1] + point.height * pointScaleY / 2f
 | `funcType == 2` 且线型 == 2 | **收缩圆圈**（`circlePaint` / `circlePaintDoubleRhyme`） | `circleShrinkRate`、`circleLeadTime`、`circleAlphaMin/Max` |
 | `funcType == 1`（或功能点线型 == 1） | **下落图片**（`*_mh.png` 或普通版） | `fallVelo`、`noteSizeBonus`、`*LineSpeed`、`*Reverse`、`*NoteType` |
 
+**绘制顺序**：`音符 → 判定线 → 打击特效`。判定线刻意画在音符之后（音符从线下面穿过、线盖在上面），改顺序时 `onDraw()` 里这三段别弄反。
+
 下落公式：
 
 ```kotlin
@@ -280,6 +282,7 @@ alpha    = circleAlphaMin + (circleAlphaMax - circleAlphaMin) * progress
 | `backgroundAlpha` | 150 | 0–200（步长 5） | 编辑态黑底透明度 |
 | `noteLineType` / `funcLineType` | 1 / 2 | 1=线 2=圈 | 两种音符的呈现方式 |
 | `noteLineNoteType` / `funcLineNoteType` | 1 / 3 | 1=Tap 2=Drag 3=Flick 4=Hold | 用哪张图 |
+| `holdMinTime` | 0.15 s | 0–1.0（步长 0.01） | 时值短于它的音按 Tap 画（0 = 不过滤） |
 | `noteLineSpeed` / `funcLineSpeed` | 1.0 | 0–2.0 | 两组音符各自的下落速度倍率 |
 | `noteLineReverse` / `funcLineReverse` | false | | 反转方向 |
 | `resourcePack` | `resource_phigros_replicate` | | 当前资源包名 |
@@ -322,6 +325,25 @@ previewScale = 预览宽度 / max(屏幕宽, 屏幕高)      // 横屏屏宽，�
 | `syncVisualSettings()` | 两边都调 | 只赋值，不碰资源包 |
 | `syncFromSettings()` | `OverlayService.syncSetting()` | 强制 `loadResourcePack()` + 赋值（保留"每次开播重试加载"） |
 | `ensureResourcePack()` | 预览 ticker | 包名变了才加载 |
+
+---
+
+### 4.6 Hold 长条（0.20.1）
+
+- **什么时候是 Hold**：`noteFuncType2NoteDrawableMap[funcType] == 4`（说明当前样式选的是 Hold）**且** `endTime - startTime >= holdMinTimeSec`。两个条件缺一不可：
+  - 时值短于 `holdMinTimeSec`（设置项 `holdMinTime`，默认 0.15s）的音会退回 Tap 画法，免得满屏都是短长条；
+  - ⚠️ **这个阈值只管"唱名区"（`funcType == 1`）**：功能提示音的时值恒为 0，套上阈值会永远被降级，等于废掉"功能线选 Hold"；
+  - 指示圈模式（`lineType == 2`）走另一条分支，跟 Hold 无关。
+- ⚠️ **atlas 必须跟着实际用的那张贴图走**：功能线固定用 `*_mh` 贴图，所以要取 `holdAtlasMH`。如果拿 `hold_mh.png` 配单押的 `[50,53]`，头部会取到那张图**底部几乎全透明**的 53px，画出来就是"只有尾、没有头"（0.21.1 踩过这个坑）。
+- **几何**：`headY = targetY - (startTime - now) × fallSpeed`，`tailY = targetY - (endTime - now) × fallSpeed`。头过线后被截在判定线上（`bottom = min(headY, targetY)`，反转时是 `top = max(headY, targetY)`），所以**整条永远不会越过判定线**。
+- **头过线后头部贴图立刻不再绘制**（`showHead = false`，长条只留中间+尾），也就是视觉上"被判定线吃掉"；尾到线则整条消失。
+- **Hold 期间每 0.25 秒补一次击打特效**：用 `Note.holdFxTime` 单独记时（**不要复用 `clickTime`**，那是"头命中"的标志）。命中那一帧会把 `holdFxTime` 也设成当前时刻，避免刚命中就叠一次特效。
+- **零时长的 Hold**（例如把功能线样式设成 Hold、功能提示音 start==end）：只拼头+尾、中间不画，整体居中在锚点上。
+- **三段拼接**（`drawHoldBar`）：纹理按 `holdAtlas = [上端px, 下端px]` 切成「尾 / 中 / 头」——尾和头按原始像素比例画，中间那段拉伸填满。双押用 `holdAtlasMH`，没配就退回 `holdAtlas`；两套都没有就按 0 处理（整张拉伸）。
+- ⚠️ **头在纹理下端**（贴判定线那端），这是按内置素材和作者的示意图定的。换皮肤后如果发现头尾反了，把 `drawHoldBar` 里第一段和第三段的 src 矩形对调即可。
+- **combo / 特效**仍然只在"头"碰到线时触发一次（靠 `clickTime` 去重），尾到线不额外触发。
+- 条太短（头段 + 尾段的固定高度加起来比整条还长）时，两段会按比例压小，避免重叠。
+- 预览视图里选 Hold 会给一个固定 0.5 秒的假长度，用同一套拼接逻辑。
 
 ---
 
@@ -393,7 +415,7 @@ awaitNextFrame()  // Choreographer
 | `name` / `author` / `description` | 字符串 | name 仅日志 | |
 | `hitFx` | `[cols, rows]` | ✅ | 特效图集切分 |
 | `colorPerfect` / `colorGood` | `0xRRGGBB` 或十进制 | ✅ | 判定线/圈/特效着色（`PorterDuff.SRC_IN`） |
-| `holdAtlas` / `holdAtlasMH` | `[x, y]` | ❌ 只解析，未使用 | 预留给 Hold 长条 |
+| `holdAtlas` / `holdAtlasMH` | `[上px, 下px]` | ✅ 0.20.1 起生效 | Hold 长条的裁剪，上端=尾、下端=头 |
 | `hitFxDuration` | float | ❌ | 实际帧率硬编码 90fps |
 | `hitFxScale` | float | ❌ | |
 
@@ -403,7 +425,7 @@ awaitNextFrame()  // Choreographer
 click.png     click_mh.png      # Tap   / 双押版
 drag.png      drag_mh.png       # Drag
 flick.png     flick_mh.png      # Flick
-hold.png      hold_mh.png       # Hold（⚠️ 未实现，只是加载了）
+hold.png      hold_mh.png       # Hold（三段拼接：头 / 中拉伸 / 尾）
 hit_fx.png                      # 打击特效图集
 click.ogg drag.ogg flick.ogg ending.mp3   # ⚠️ 代码里没有任何播放音频的逻辑
 ```
@@ -447,7 +469,7 @@ click.ogg drag.ogg flick.ogg ending.mp3   # ⚠️ 代码里没有任何播放�
 1. **"暂停触控遮挡"按钮**：作者的设计意图是——校准阶段窗口是"可点"的（会挡住游戏），点这个按钮后 **6 秒内**窗口变 `FLAG_NOT_TOUCHABLE`（触控穿透到游戏，方便没有小窗的机型切出去），进度条走完再恢复遮挡。它和 `touchInterceptorView` 同生共死，所以校准界面隐藏后按钮也跟着不可见，这是**预期行为**，不是 bug。只是命名（`pauseRaycast` / "暂停触控遮挡"）不直观，将来改的话建议改成 `toggleTouchPassthrough` 之类。
 2. **判定线水平中心**：`noteLineX = widthPixels` 看着像少除 2，但作者实机体感与用户反馈都没问题，**保持现状**。
 3. **同一 layout 内重复 id**：`activity_settings.xml` 里 `setting_playSpeed_RESET` 出现 7 次、`activity_advanced_setting.xml` 5 次，`findViewById` 只命中第一个。作者决定不修——行内 RESET 的必要性不高，有"设置码"和底部"重置全部"就够。**真要做行内重置，必须先改 id。**
-4. **Hold 长条**：`Note.endTime` 已算好但不参与绘制，`hold.png` / `holdAtlas` 空转。作者说 Hold 的判定规则较复杂，**等规则说明再实现**（第 9 节已写了实现思路）。
+4. **Hold 长条**：~~等规则再实现~~ **0.20.1 已实现**（见 4.6）。仍然只做显示：不做"松手断 combo / 尾判"——那需要无障碍服务去记录触控，作者认为有外挂嫌疑，排到很后面。
 5. **音频资源**：`.ogg` / `.mp3` 在 assets 里但没接 `SoundPool`，暂时不需要。
 6. **死代码**：`extractBpm()` / `extractTrackName()`、`countdown`、`calculatePointPosByCalibPoint()`、`activity_launch.xml`、`calibration_dot.png`、`baseline_code_off_24.xml`、`keepRules/rules.keep`、`setting_colorRow`。**作者有意留着备用，别顺手删。**
 7. **坐标缩放被乘两次**：`noteSizeX = bmp.width * pointScaleX / 7` 之后又 `* pointScaleX`，调大小的时候注意是平方级影响。能跑就不动。
@@ -490,8 +512,8 @@ click.ogg drag.ogg flick.ogg ending.mp3   # ⚠️ 代码里没有任何播放�
 **加一个页面**
 `AndroidManifest.xml` 注册 Activity（非启动页 `exported=false`）→ `main_drawer_menu.xml` 加 `<item>` → `MainActivity` 的 `nav_View.setNavigationItemSelectedListener` 加分支 → 新 Activity 里记得 `enableEdgeToEdge()` + `ViewCompat.setOnApplyWindowInsetsListener`（全项目统一这个套路）。
 
-**做 Hold 长条（最想要的功能）**
-`Note.endTime` 已经算好了，渲染时用 `endTime > startTime + ε` 判断；`hold.png` 是 9-patch 风格的拉伸图（`holdAtlas: [50, 53]` 看起来是左右端的像素宽度，`holdAtlasMH: [50, 153]` 是带尾巴的版本），按"头 + 拉伸中段 + 尾"三段画，或者直接 `drawBitmap` 拉伸。注意现在 `syncINFO()` 会把 `clickTime` 全部重置，长条需要另一个"是否已判定头/尾"的标志。
+**给 Hold 加判定（远期的活）**
+现在 Hold 只画不判。要做"松手断 combo / 尾判"，绕不开**记录触控**（无障碍服务或 `FLAG_NOT_TOUCHABLE` 之外的手段），作者认为那一步会让软件更像外挂，所以明确排在很后面。真要做的话，落点大概在：`NoteIndicatorView` 里给每条 Hold 记一个"头已判/尾已判"状态（`clickTime` 只能表达"头"，别复用），配合 `OverlayService` 的触控回调，别去动 `syncINFO()` 的重置逻辑。
 
 **发版**
 改 `versionName`（`versionCode` 也改一下）→ `gradlew assembleRelease` → 把 APK 复制成 `app/release/Harmonica-Indicator-release-vX.Y.Z.apk` → 打 tag 推 GitHub。
@@ -524,7 +546,19 @@ click.ogg drag.ogg flick.ogg ending.mp3   # ⚠️ 代码里没有任何播放�
 - Git 远端：`origin → github.com/MooCen/Harmonica-Indicator`，当前分支 `master`，最新提交 `66759c5`（v0.19.5）。
 - 历史里 `936b086` 是初版，`df82ae2` 加 GitHub 链接，`66759c5` 清理 AndroidManifest。
 
-### 0.20.1 改动清单（2026-11-12，未提交）
+### 0.21.1 改动清单（2026-11-12，未提交）
+
+- 新增设置 **`holdMinTime`**（"唱名"区音符样式下方）：时值短于设定值的 Hold 按 Tap 显示，0–1.0s、步长 0.01、默认 0.15s；"唱名"区切到指示圈时这一栏跟着隐藏。**只作用于唱名区（noteLine）**，功能线不受影响。
+- **判定线改为在音符之后绘制**（线在顶层，音符从线下面穿过），预览视图同步；绘制顺序现在是 `音符 → 判定线 → 打击特效`。
+- 设置页音符样式 `Hold(极短版)` 更名为 **`Hold`**（现在真的会拉伸了，不再"极短"）。
+- **Hold 长条**：按 `holdAtlas` / `holdAtlasMH` 三段拼接（头尾定长、中段拉伸）。
+- 头过线后**头部贴图立即不再绘制**，长条被判定线一节节"吃掉"；尾到线整条消失。
+- Hold 期间（头已贴线、尾未落线）**每 0.25 秒补一次击打特效**，用 `Note.holdFxTime` 独立记时。
+- **零时长的 Hold** 只画头+尾、不画中间（修掉"功能线设成 Hold 时渲染整张图"的问题）。
+- 预览视图的 Hold 改成 **0.3 秒**，并把"被判定线吃掉"的过程也演出来。
+- `versionName` 0.20.1 → **0.21.1**，`versionCode` 3 → 4。
+
+### 0.20.1 改动清单（2026-11-12，已提交 `5764f98`）
 
 - 支持 **SMPTE 时间码** MIDI：`division` 高字节按二补码取负帧率、低字节为每帧 tick 数，`CalcTimePoint()` 分流成 `tick × 秒/tick`，与 tempo 无关；`-29` 按 29.97（drop-frame）处理。
 - 解析完成后只弹**一条摘要**：`格式 → 速度参数 → 有无变速 → 音符数`，例如

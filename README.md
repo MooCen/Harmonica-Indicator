@@ -10,7 +10,7 @@
 <p align="center">口琴音阶指示器 —— 把 MIDI 谱面变成盖在游戏画面上的"按键提示"</p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-0.20.0-blue">
+  <img alt="version" src="https://img.shields.io/badge/version-0.21.1-blue">
   <img alt="minSdk" src="https://img.shields.io/badge/minSdk-26%20(Android%208.0)-green">
   <img alt="platform" src="https://img.shields.io/badge/platform-Android-3DDC84">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-brightgreen">
@@ -39,6 +39,7 @@
 
 - **MIDI 解析**：支持 PPQ 与 SMPTE 两种时间基准，自动处理变速（Tempo 事件）、力度 0 的 note-off；损坏文件会提示而不是崩溃。
 - **悬浮窗提示**：8 条轨 + 4 种功能提示（半音 / 升调 / 自然 / 降调），判定线与节奏圈两种呈现方式可分别设置。
+- **Hold 长条**：按音符的实际时值拉伸；太短的音可以在设置里设个阈值，自动按 Tap 显示。
 - **一次性校准**：把校准图拖到和游戏界面重合、双指缩放对齐，位置和缩放都会记住，下次直接开播。
 - **资源包**：内置一套 Phigros 风格皮肤，也支持导入自制 zip 皮肤（见下）。
 - **设置码**：把整套视觉设置编码成一段短码，跨设备分享（`A` 开头是高级设置，`B` 开头是基础设置）。
@@ -101,7 +102,10 @@ my_pack.zip
 | `hitFx` | `[7, 6]` | 特效图集切分：列数, 行数 |
 | `colorPerfect` | `0xFCFDB4` | 判定线 / 普通圈颜色 |
 | `colorGood` | `0x78D8FC` | 双押圈颜色 |
-| `hitFxDuration` / `hitFxScale` / `holdAtlas` | — | 预留字段，**当前版本还不生效** |
+| `holdAtlas` / `holdAtlasMH` | `[50, 53]` | Hold 长条的裁剪：上端 / 下端各占多少像素 |
+| `hitFxDuration` / `hitFxScale` | — | 预留字段，**当前版本还不生效** |
+
+> **Hold 长条怎么拼**：纹理**上端是尾、下端是头**（贴判定线那端），中间那段会被拉伸，头尾保持原样。双押的 Hold 用 `holdAtlasMH`，没配就退回 `holdAtlas`。长度由音符本身的时值决定。
 
 - `*_mh.png` 是"双押"版本的图，没有就缺一张；缺图会跳过，不会崩。
 - 导入：设置页 →「导入资源包」→ 选 zip。包名 = zip 文件名，重名会被拒绝。
