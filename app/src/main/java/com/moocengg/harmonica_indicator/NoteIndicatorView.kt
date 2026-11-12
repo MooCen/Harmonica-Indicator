@@ -472,6 +472,8 @@ class NoteIndicatorView @JvmOverloads constructor(
                 if (currentTimeMs / 1000f > note.startTime / playSpeed) {
                     if(note.clickTime<0){
                         note.clickTime = currentTimeMs/1000f
+                        // 功能提示（funcType = 2）不计入 combo；只有 noteLine 上的音符算
+                        if (note.funcType == 1) OverlayState.updateCombo(true)
 
                         // 生成一个特效实例
                         val effectSize = 200f * pointScaleX * effectSizeBonus
@@ -524,7 +526,8 @@ class NoteIndicatorView @JvmOverloads constructor(
                 if (currentTimeMs / 1000f > note.startTime / playSpeed) {
                     if(note.clickTime<0){
                         note.clickTime = currentTimeMs/1000f
-                        OverlayState.updateCombo(true)
+                        // combo 只统计 noteLine 上的音符（funcType = 1）；功能提示（funcType = 2）不计
+                        if (note.funcType == 1) OverlayState.updateCombo(true)
 
                         // 生成一个特效实例     ——咱要不后边改用对象池？
                         val effectSize = 200f * pointScaleX * effectSizeBonus

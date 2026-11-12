@@ -99,12 +99,16 @@ data class tempoEvent(val startTick: Long, val value: Int)  // value = 每四分
 ```
 
 - **音高**：只处理 `NOTE_ON`（`statusCode == MidiChannelStatus.NOTE_ON`）和 `NOTE_OFF`。
-  - `NOTE_OFF` 会去 `syllables` 里找**第一个"同音高且还没结束"**的音符并盖上 `endTick`（`break`）。
-  - ⚠️ **velocity = 0 的 NOTE_ON 没有当作 NOTE_OFF 处理**，这类文件会留下 `endTick < 0` 的悬挂音符。
+  - `NOTE_OFF`（以及力度为 0 的 `NOTE_ON`）都走 `closeSyllable()`：给**第一个"同音高且还没结束"**的音符盖上 `endTick`。
+  - 找不到匹配的孤儿 `NOTE_OFF` 直接忽略；收尾阶段仍没闭合的"悬挂音符"会被 `removeAll` 丢弃并打日志（0.20.0 修的，见 8.1）。
 - **速度**：META `TEMPO` 事件 → `TempoList`。
   - 解析前先塞一个默认 `tempoEvent(0, 500_000)`（120 BPM）。
   - 遇到 `nowTick == 0` 的 tempo 事件会先 `clear()`，再写入真正的初始速度。
-- **division**：直接从文件头第 12、13 字节大端读（`getDivisionFromByteArray`），**没有用 ktmidi 的解析结果**。`>= 0x8000`（SMPTE）只弹个 Toast，后续计算会错，也就是说**只支持 PPQ**。
+- **division**：直接从文件头第 12、13 字节大端读（`getDivisionFromByteArray`），**没有用 ktmidi 的解析结果**。分两种制式：
+  - `bit15 == 0` → **PPQ**：每四分音符 `division` 个 tick，时间靠 tempo 事件分段积分；
+  - `bit15 == 1` → **SMPTE 时间码**：高字节是二补码形式的负帧率（`fps = 256 - h`），低字节是每帧多少 tick，`每 tick 秒数 = 1 / (fps × ticksPerFrame)`，**tempo 事件不参与时间轴**。`-29` 是 30fps 的 drop-frame，按 29.97 处理。
+  - `CalcTimePoint()` 里靠 `smpteSecondsPerTick > 0f` 分流；`RefreshData()` 会重置这三个 SMPTE 字段（`smpteSecondsPerTick` / `smpteFps` / `smpteTicksPerFrame`），避免换歌时串味。
+  - ktmidi 本身对两种制式都能正常读事件（实测过一个 SMPTE 文件：1 轨 4 事件、delta 正确），所以只需要我们自己做时间换算。
 
 ### 3.3 音高 → 轨位（`CalcPitchNum`）
 
@@ -161,8 +165,9 @@ CalcTimePoint(tick): Float  // tick → 秒，按 TempoList 分段积分
 ```
 
 - 分段累加 `(Δtick × 每四分音符微秒) / (division × 1_000_000)`。
+- **SMPTE 制式走另一条分支**：`tick × smpteSecondsPerTick`，和 tempo 完全无关（所以 SMPTE 文件里那些 tempo 事件只是摆设，别被它们骗了）。
 - 默认曲首没有 tempo 事件时用的是 500_000（120 BPM）。
-- **BPM 只取第一个 tempo 事件**：`(60000000.0 / TempoList[0].value).toInt()`，变速曲的主界面 BPM 显示就是这个值。
+- **BPM 只取第一个 tempo 事件**：`(60000000.0 / TempoList[0].value).toInt()`，变速曲的主界面 BPM 显示就是这个值。SMPTE 文件也照这个规则显示，但那个数**只是名义 BPM**，不代表实际速度。
 
 ### 3.6 交给悬浮窗
 
@@ -239,7 +244,7 @@ val y  = targetY - dt * fallVelo * noteFuncType2FuncLineSpeed[funcType]
 
 - 正 `dt` → 音符在判定点**上方**，随时间下落到 `targetY`。
 - `playSpeed` 只压缩"时间轴"，**不改变下落速度**（视觉上音符间距会变）。
-- 命中判定：`currentTimeMs/1000f > note.startTime / playSpeed` 时，把 `clickTime` 置为当前时间（只触发一次），`funcType == 1` 会 `combo + 1`，然后 `continue` 不再绘制。
+- 命中判定：`currentTimeMs/1000f > note.startTime / playSpeed` 时，把 `clickTime` 置为当前时间（只触发一次），**`funcType == 1` 会 `combo + 1`**（功能提示不计），然后 `continue` 不再绘制。两条分支（指示圈 / 下落音符）都要各自判断，别只改一处。
 - `*_Reverse` 用 `canvas.scale(1f, -1f, ...)` 做上下翻转，不改坐标。
 - 屏幕外（`y < -noteSizeY || y > height + noteSizeY`）直接跳过。
 
@@ -518,6 +523,19 @@ click.ogg drag.ogg flick.ogg ending.mp3   # ⚠️ 代码里没有任何播放�
 - 这份 zip 是 **改动前** 的原始快照（也就是已经发到 GitHub 的 v0.19.5）；之后的改动一直在**工作区里、尚未提交**，`git diff` 就能看到全貌。
 - Git 远端：`origin → github.com/MooCen/Harmonica-Indicator`，当前分支 `master`，最新提交 `66759c5`（v0.19.5）。
 - 历史里 `936b086` 是初版，`df82ae2` 加 GitHub 链接，`66759c5` 清理 AndroidManifest。
+
+### 0.20.1 改动清单（2026-11-12，未提交）
+
+- 支持 **SMPTE 时间码** MIDI：`division` 高字节按二补码取负帧率、低字节为每帧 tick 数，`CalcTimePoint()` 分流成 `tick × 秒/tick`，与 tempo 无关；`-29` 按 29.97（drop-frame）处理。
+- 解析完成后只弹**一条摘要**：`格式 → 速度参数 → 有无变速 → 音符数`，例如
+  `格式：PPQ，BPM 120（480 tick/四分音符）；无变速；音符 250 个` 或
+  `格式：SMPTE，25 fps × 40 ticks/帧（1000 tick/秒）；变速不生效；音符 250 个`。
+  之前"格式"和"变速/音符数"是两条 Toast，现在合成一条（`buildParseSummary()`）。
+- **combo 只统计 noteLine 上的音符**（`funcType == 1`），功能提示圈（`funcType == 2`）不计；两条线无论用"音符"还是"指示圈"渲染，判定口径都一样。
+- `RefreshData()` 重置 SMPTE 三个字段，避免切歌串味。
+- 解析完成后的提示：SMPTE 文件不再报"变速次数"，改为显示时间码参数。
+
+**验证**：用一个手工构造的 SMPTE MIDI（`division = 0xE728`，25fps × 40 ticks/帧）实测 ktmidi 能正常读出事件；`1000 tick/秒` 下 note on→off 的 100 tick 正好 = 0.1s。**真机还没跑过**，等作者构建确认。
 
 ### 0.20.0 改动清单（2026-11-10，未提交）
 

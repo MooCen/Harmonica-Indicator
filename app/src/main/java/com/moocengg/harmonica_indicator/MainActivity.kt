@@ -90,6 +90,10 @@ class MainActivity : AppCompatActivity() {
     var WholeINFO: INFO = INFO("",0,0,emptyList())
     var TempoList: MutableList<tempoEvent> = mutableListOf()
     var division: Int = -1;
+    // SMPTE 时间码制式下"每 tick 多少秒"；0 表示当前文件是 PPQ（或者还没解析）
+    private var smpteSecondsPerTick: Float = 0f
+    private var smpteFps: Float = 0f
+    private var smpteTicksPerFrame: Int = 0
     var syllables: MutableList<syllable> = mutableListOf()
     var notes: MutableList<Note> = mutableListOf()
     private val pickMidiLAUNCHER = registerForActivityResult(
@@ -332,15 +336,28 @@ class MainActivity : AppCompatActivity() {
         division = getDivisionFromByteArray(bytes)
         val Tempo = 500_000
         TempoList.add(tempoEvent(0,Tempo))
-        if (division > 0) {
-            //println("MIDI Division: $division")
-            if (division < 0x8000) {
-                //Toast.makeText(this@MainActivity, "格式: PPQ, 每四分音符 ${division} ticks", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this@MainActivity, "格式: SMPTE", Toast.LENGTH_SHORT).show()
-            }
+        if (division <= 0) {
+            Toast.makeText(this@MainActivity, "无法解析或文件无效（division = $division）", Toast.LENGTH_SHORT).show()
+            // division 非法还继续算，只会得到一堆时间为 -1 的音符，直接停
+            return
+        } else if (division < 0x8000) {
+            // PPQ（每四分音符 division 个 tick）：时间要靠 tempo 事件换算
+            smpteSecondsPerTick = 0f
+            //Toast.makeText(this@MainActivity, "格式: PPQ, 每四分音符 ${division} ticks", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this@MainActivity, "无法解析或文件无效", Toast.LENGTH_SHORT).show()
+            // SMPTE 时间码：高字节是"负的帧率"（二补码），低字节是每帧多少个 tick。
+            // 例：0xE728 → 帧率 256-0xE7 = 25 fps、每帧 0x28 = 40 tick → 1000 tick/秒。
+            // 这种制式下每 tick 的秒数是固定的，tempo 事件不影响时间轴。
+            val fpsRaw = 256 - ((division shr 8) and 0xFF)
+            smpteTicksPerFrame = division and 0xFF
+            // -29 是 30fps 的 drop-frame，实际帧率是 29.97
+            smpteFps = if (fpsRaw == 29) 29.97f else fpsRaw.toFloat()
+            smpteSecondsPerTick = if (smpteTicksPerFrame > 0 && smpteFps > 0f) {
+                1f / (smpteFps * smpteTicksPerFrame)
+            } else {
+                0f
+            }
+            // 格式/速度参数统一在解析结束的那条摘要里报（见 buildParseSummary），这里不再单独 Toast
         }
         for (track in music.tracks){
             var nowTick: Long = 0
@@ -388,17 +405,14 @@ class MainActivity : AppCompatActivity() {
         syllables.removeAll { it.endTick < 0 }
         syllables = syllables.sortedBy { it.startTick }.toMutableList()
         TempoList = TempoList.sortedBy { it.startTick }.toMutableList()
-        if(TempoList.size==1){
-            Toast.makeText(this@MainActivity, "整首曲子无变速，BPM:${(60000000.0 / TempoList[0].value).toInt()}，总共有${syllables.size}个音符", Toast.LENGTH_SHORT).show()
-        }else{
-            Toast.makeText(this@MainActivity, "整首曲子中有${TempoList.size-1}处变速", Toast.LENGTH_SHORT).show()
-        }
+        // 统一成一条摘要：格式 → 速度参数 → 有无变速 → 音符数量
+        Toast.makeText(this@MainActivity, buildParseSummary(), Toast.LENGTH_LONG).show()
 
         indicateText.text = "文件：${selectFileName}\n状态：已解析"
 
         // 生成Note序列
         var (lastTuneGear: Int, lastSemitone: Boolean) = 0 to false
-        Log.i("MainActivity","当前tempo值为：${TempoList[0].value}, Midi文件division为：${division}")
+        Log.i("MainActivity","当前tempo值为：${TempoList[0].value}, Midi文件division为：${division}, SMPTE每tick秒数：${smpteSecondsPerTick}")
         for (syll in syllables){
             var tuneGear = 0
             // 48-59 为降调 48、50、52、53、55、57、59
@@ -465,6 +479,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * 解析完成后只弹这一条摘要，别再零散地弹一串 Toast：
+     * 格式 → 速度参数 → 有无变速 → 音符数量
+     */
+    private fun buildParseSummary(): String {
+        val noteCount = syllables.size
+        if (smpteSecondsPerTick > 0f) {
+            val tickPerSec = (smpteFps * smpteTicksPerFrame).toInt()
+            return "格式：SMPTE，${formatFps(smpteFps)} fps × ${smpteTicksPerFrame} ticks/帧（${tickPerSec} tick/秒）；" +
+                    "变速不生效；音符 ${noteCount} 个"
+        }
+        if (division >= 0x8000) {
+            // 时间码参数不合法（每帧 tick = 0 之类），时间轴没法按 SMPTE 算
+            return "格式：SMPTE（参数异常：每帧 tick 数 = $smpteTicksPerFrame），时间轴无法解析；音符 ${noteCount} 个"
+        }
+        val bpm = if (TempoList.isEmpty()) 0 else (60000000.0 / TempoList[0].value).toInt()
+        val tempoText = if (TempoList.size <= 1) "无变速" else "变速 ${TempoList.size - 1} 处"
+        return "格式：PPQ，BPM $bpm（${division} tick/四分音符）；$tempoText；音符 ${noteCount} 个"
+    }
+
+    /** 25.0 打成 "25"、29.97 打成 "29.97"，别让用户看到多余的 .0 */
+    private fun formatFps(fps: Float): String =
+        if (fps % 1f == 0f) fps.toInt().toString() else "%.2f".format(fps)
+
+    /**
      * 给"同音高、还没结束"的第一个音符收尾。
      * 这里只改 endTick、不动列表结构——遍历时增删同一个列表会抛 ConcurrentModificationException。
      * 找不到匹配（孤儿 NOTE_OFF / 多轨串音）就静默忽略，不让脏数据把整个解析带崩。
@@ -524,6 +562,10 @@ class MainActivity : AppCompatActivity() {
         return ans to semi
     }
     fun CalcTimePoint(tick: Long) : Float{
+        // SMPTE 时间码：每 tick 的秒数固定，跟 tempo 无关
+        if (smpteSecondsPerTick > 0f) {
+            return tick * smpteSecondsPerTick
+        }
         if(division <= 0){
             return -1f
         }
@@ -550,6 +592,9 @@ class MainActivity : AppCompatActivity() {
         TempoList = mutableListOf()
         syllables = mutableListOf()
         notes = mutableListOf()
+        smpteSecondsPerTick = 0f
+        smpteFps = 0f
+        smpteTicksPerFrame = 0
     }
 
 

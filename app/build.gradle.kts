@@ -15,8 +15,8 @@ android {
         applicationId = "com.moocengg.harmonica_indicator"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.20.0"
+        versionCode = 3
+        versionName = "0.20.1"
         //将版本号同步至strings.xml
         resValue("string", "app_version", versionName!!)
 
